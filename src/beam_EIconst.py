@@ -1,17 +1,22 @@
 from typing import Tuple
 
 import numpy as np
+import scipy as sp 
 import matplotlib.pyplot as plt
 
 
 def second_derivative(n: int, ds: float) -> np.ndarray[[float], [float]]:
     # centered scheme, the first and last line have to be completed with BC 
-    res = np.zeros((n, n))
 
-    for row in range(1, n - 1):
-        res[row, row - 1] = 1 / ds**2
-        res[row, row] = -2 / ds**2
-        res[row, row + 1] = 1 / ds**2
+    dinf = +1.0 * np.ones((n - 1,))/ds**2
+    diag = -2.0 * np.ones((n ,))/ds**2
+    dsup = +1.0 * np.ones((n - 1,))/ds**2
+
+    dinf[-1] = 0
+    diag[0] = 0; diag[-1] = 0
+    dsup[0] = 0
+
+    res = sp.sparse.diags([dinf, diag, dsup], [-1, 0, 1])
 
     return res
 
@@ -19,14 +24,19 @@ def second_derivative(n: int, ds: float) -> np.ndarray[[float], [float]]:
 def fourth_derivative(n: int, ds: float) -> np.ndarray[[float], [float]]:
     # centered scheme, the two first and two last line have to be completed with BC 
 
-    res = np.zeros((n, n))
+    dinf2 = +1.0 * np.ones((n - 2))/ds**4
+    dinf1 = -4.0 * np.ones((n - 1,))/ds**4
+    diag = +6.0 * np.ones((n ,))/ds**4
+    dsup1 = -4.0 * np.ones((n - 1,))/ds**4
+    dsup2 = +1.0 * np.ones((n - 2,))/ds**4
 
-    for row in range(2, n - 2):
-        res[row, row - 2] = 1 / ds**4
-        res[row, row - 1] = -4 / ds**4
-        res[row, row] = 6 / ds**4
-        res[row, row + 1] = -4 / ds**4
-        res[row, row + 2] = 1 / ds**4
+    dinf2[-1] = 0; dinf2[-2] = 0
+    dinf1[-1] = 0; dinf1[-2] = 0; dinf1[0] = 0
+    diag[0] = 0; diag[1] = 0; diag[-2] = 0; diag[-1] = 0
+    dsup1[0] = 0; dsup1[1] = 0; dsup1[-1] = 0
+    dsup2[0] = 0; dsup2[1] = 0
+
+    res = sp.sparse.diags([dinf2, dinf1, diag, dsup1, dsup2], [-2, -1, 0, 1, 2])
 
     return res
 
@@ -76,6 +86,8 @@ def boundary_condition(ds: float, n:int,
         bc_matrix[-2, -2] -= 2/ds**2
         bc_matrix[-2, -3] -= -1/ds**2
 
+    bc_matrix = sp.sparse.bsr_matrix(bc_matrix)
+
     rhs = np.zeros(n)
     rhs[0] = d1
     rhs[1] = d2
@@ -114,14 +126,14 @@ if __name__ == "__main__":
     function1 = exact_solutionE1(x)
     A1 = fourth_derivative(n, ds)
     BC1, rhs1 = boundary_condition(ds, n, t1, t2, t3, t4, False)
-    sol1 = np.linalg.solve(A1 + BC1, rhs1)
+    sol1 = sp.sparse.linalg.spsolve(A1 + BC1, rhs1)
 
     plt.plot(x, function1, color="blue", label="exact")
     plt.plot(x, sol1, color="orange", label="approx")
     plt.legend()
     plt.show()
 
-    ### solve y"" - y" = 0 with BC, equation 2 (E2) ###
+    # ### solve y"" - y" = 0 with BC, equation 2 (E2) ###
 
     t1 = [1, 0, 0, 0]
     t2 = [0, 0, 1, 1]
@@ -132,9 +144,11 @@ if __name__ == "__main__":
     BC2, rhs2 = boundary_condition(ds, n, t1, t2, t3, t4, True)
     A22 = second_derivative(n, ds)
     A = A24 - A22 + BC2 
-    sol2 = np.linalg.solve(A, rhs2)
+    sol2 = sp.sparse.linalg.spsolve(A, rhs2)
 
     plt.plot(x, function2, color="blue", label="exact")
     plt.plot(x, sol2, color="orange", label="approx")
     plt.legend()
     plt.show()
+
+
