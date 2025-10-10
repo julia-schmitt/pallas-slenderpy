@@ -3,9 +3,22 @@ from typing import Tuple, Optional
 import numpy as np
 import scipy as sp 
 
+def first_derivative(n: int, ds: float) -> np.ndarray[[float], [float]]:
+    # centered scheme, the first and last line have to be completed with BC (order 2)
+
+    dinf = -1.0 * np.ones((n - 1,))/(2*ds)
+    dsup = +1.0 * np.ones((n - 1,))/(2*ds)
+
+    dinf[-1] = 0
+    dsup[0] = 0
+
+    res = sp.sparse.diags([dinf, dsup], [-1, 1])
+
+    return res
+
 
 def second_derivative(n: int, ds: float) -> np.ndarray[[float], [float]]:
-    # centered scheme, the first and last line have to be completed with BC 
+    # centered scheme, the first and last line have to be completed with BC (order 2)
 
     dinf = +1.0 * np.ones((n - 1,))/ds**2
     diag = -2.0 * np.ones((n ,))/ds**2
@@ -21,7 +34,7 @@ def second_derivative(n: int, ds: float) -> np.ndarray[[float], [float]]:
 
 
 def fourth_derivative(n: int, ds: float) -> np.ndarray[[float], [float]]:
-    # centered scheme, the two first and two last line have to be completed with BC 
+    # centered scheme, the two first and two last line have to be completed with BC (order 4) 
 
     dinf2 = +1.0 * np.ones((n - 2))/ds**4
     dinf1 = -4.0 * np.ones((n - 1,))/ds**4

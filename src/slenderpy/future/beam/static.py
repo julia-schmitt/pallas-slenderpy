@@ -18,7 +18,7 @@ def clean_matrix(n : int, remove):
 
     return res
 
-def solve_beam_const(n : int, ds : float, EI: float, H : float, bc:FD.BoundaryCondition):
+def _solve_curvature_approx(n : int, ds : float, EI: float, H : float, bc:FD.BoundaryCondition):
     ### equation : EI*(d^4/dx^4)*y - H*(d^2/dx^2)*y = F(x) ###
     A4 = EI*FD.fourth_derivative(n, ds)
     A2 = -H*FD.second_derivative(n, ds) # si H = 0 D2 est quand même calculé ? 
@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
     bc = FD.BoundaryCondition(4, left, right)
     function1 = exact_solutionE1(x)
-    sol1 = solve_beam_const(n,ds,EI,H,bc)
+    sol1 = _solve_curvature_approx(n,ds,EI,H,bc)
 
     plt.plot(x, function1, color="blue", label="exact")
     plt.plot(x, sol1, color="orange", label="approx")
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     right = [[1, 0, 0, 0],[0, 0, 1, 0]]
     bc = FD.BoundaryCondition(4,left,right)
     function2 = exact_solutionE2(x)
-    sol2 = solve_beam_const(n,ds,EI,H,bc)
+    sol2 = _solve_curvature_approx(n,ds,EI,H,bc)
 
     plt.plot(x, function2, color="blue", label="exact")
     plt.plot(x, sol2, color="orange", label="approx")
