@@ -123,7 +123,7 @@ class BoundaryCondition:
 
     def compute(self, ds: float, n:int)-> Tuple[np.ndarray[[float], [float]], np.ndarray[float]]:
         a1, b1, c1, d1 = self.left[0]
-        a3, b3, c3, d3 = self.right[0]
+        a4, b4, c4, d4 = self.right[0]
 
         bc_matrix = sp.sparse.lil_matrix((n,n))
         rhs = np.zeros(n)
@@ -132,26 +132,26 @@ class BoundaryCondition:
         bc_matrix[0, 1] = b1 / ds - 2 * c1 / ds**2
         bc_matrix[0, 2] = c1 / ds**2
 
-        bc_matrix[-2, -1] = a3 + b3 / ds + c3 / ds**2 
-        bc_matrix[-2, -2] = -b3 / ds - 2 * c3 / ds**2 
-        bc_matrix[-2, -3] = c3 / ds**2 
-
+        bc_matrix[-1, -1] = a4 + b4 / ds + c4 / ds**2
+        bc_matrix[-1, -2] = -b4 / ds - 2 * c4 / ds**2
+        bc_matrix[-1, -3] = c4 / ds**2
+        
         rhs[0] = d1
-        rhs[-2] = d3
+        rhs[-1] = d4
 
         if self.order == 4:
             a2, b2, c2, d2 = self.left[1]
-            a4, b4, c4, d4 = self.right[1]
+            a3, b3, c3, d3 = self.right[1]
 
             bc_matrix[1, 0] = a2 - b2 / ds + c2 / ds**2 
             bc_matrix[1, 1] = b2 / ds - 2 * c2 / ds**2 
             bc_matrix[1, 2] = c2 / ds**2
 
-            bc_matrix[-1, -1] = a4 + b4 / ds + c4 / ds**2
-            bc_matrix[-1, -2] = -b4 / ds - 2 * c4 / ds**2
-            bc_matrix[-1, -3] = c4 / ds**2
+            bc_matrix[-2, -1] = a3 + b3 / ds + c3 / ds**2 
+            bc_matrix[-2, -2] = -b3 / ds - 2 * c3 / ds**2 
+            bc_matrix[-2, -3] = c3 / ds**2 
 
-            rhs[-1] = d4
+            rhs[-2] = d3
             rhs[1] = d2
 
 
