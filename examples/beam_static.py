@@ -26,11 +26,11 @@ def curvature_approx_bending_const():
     left = [[1, 0, 0, 0], [0, 0, 1, 1]]
     right = [[1, 0, 0, 0], [0, 0, 1, 0]]
     bc = FD.BoundaryCondition(4, left, right)
-    function2 = exact_solution(x)
-    sol2 = _solve_curvature_approx(n, ds, EI, H, bc)
+    function = exact_solution(x)
+    sol = _solve_curvature_approx(n, ds, EI, H, bc)
 
-    plt.plot(x, function2, color="blue", label="exact")
-    plt.plot(x, sol2, color="orange", label="approx")
+    plt.plot(x, function, color="blue", label="exact")
+    plt.plot(x, sol, color="orange", label="approx")
     plt.legend()
     plt.show()
 
