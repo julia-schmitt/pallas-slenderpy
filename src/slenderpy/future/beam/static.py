@@ -1,12 +1,12 @@
+from typing import Optional
+
 import numpy as np
 import scipy as sp
-import matplotlib.pyplot as plt
 
-# import fd_utils as FD
 import slenderpy.future.beam.fd_utils as FD
 
 
-def clean_matrix(n: int, order: int, A2):
+def clean_matrix(n: int, order: int, A2: sp.sparse.spmatrix) -> sp.sparse.spmatrix:
     if order == 4:
         A2.data[0, 0] = 0
         A2.data[0, -3] = 0
@@ -20,7 +20,9 @@ def clean_matrix(n: int, order: int, A2):
     return A2
 
 
-def clean_rhs(n: int, order: int, rhs=None):
+def clean_rhs(
+    n: int, order: int, rhs: Optional[np.ndarray[float]] = None
+) -> np.ndarray[float]:
     if rhs is None:
         return np.zeros(n)
 
@@ -35,8 +37,13 @@ def clean_rhs(n: int, order: int, rhs=None):
 
 
 def _solve_curvature_approx(
-    n: int, ds: float, EI: float, H: float, bc: FD.BoundaryCondition, rhs=None
-):
+    n: int,
+    ds: float,
+    EI: float,
+    H: float,
+    bc: FD.BoundaryCondition,
+    rhs: Optional[np.ndarray[float]] = None,
+) -> Optional[np.ndarray[float]]:
     ### equation : EI*(d^4/dx^4)*y - H*(d^2/dx^2)*y = F(x) ###
     A4 = EI * FD.fourth_derivative(n, ds)
     A2 = -H * FD.second_derivative(n, ds)  # si H = 0 D2 est quand même calculé ?

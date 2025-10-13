@@ -4,7 +4,7 @@ import numpy as np
 import scipy as sp
 
 
-def first_derivative(n: int, ds: float) -> np.ndarray[[float], [float]]:
+def first_derivative(n: int, ds: float) -> sp.sparse.spmatrix:
     # centered scheme, the first and last line have to be completed with BC (order 2)
 
     dinf = -1.0 * np.ones((n - 1,)) / (2 * ds)
@@ -18,7 +18,7 @@ def first_derivative(n: int, ds: float) -> np.ndarray[[float], [float]]:
     return res
 
 
-def second_derivative(n: int, ds: float) -> np.ndarray[[float], [float]]:
+def second_derivative(n: int, ds: float) -> sp.sparse.spmatrix:
     # centered scheme, the first and last line have to be completed with BC (order 2)
 
     dinf = +1.0 * np.ones((n - 1,)) / ds**2
@@ -35,7 +35,7 @@ def second_derivative(n: int, ds: float) -> np.ndarray[[float], [float]]:
     return res
 
 
-def fourth_derivative(n: int, ds: float) -> np.ndarray[[float], [float]]:
+def fourth_derivative(n: int, ds: float) -> sp.sparse.spmatrix:
     # centered scheme, the two first and two last line have to be completed with BC (order 4)
 
     dinf2 = +1.0 * np.ones((n - 2)) / ds**4
@@ -151,7 +151,7 @@ class BoundaryCondition:
 
     def compute(
         self, ds: float, n: int
-    ) -> Tuple[np.ndarray[[float], [float]], np.ndarray[float]]:
+    ) -> Tuple[sp.sparse.spmatrix, np.ndarray[float]]:
         a1, b1, c1, d1 = self.left[0]
         a4, b4, c4, d4 = self.right[0]
 

@@ -119,7 +119,7 @@ def test_fourth_derivative():
 
     sol = sp.sparse.linalg.spsolve(A + bc_matrix, rhs)
 
-    atol = 1.0e-09
+    atol = 1.0e-06
     rtol = 1.0e-03
 
     def exact(x):

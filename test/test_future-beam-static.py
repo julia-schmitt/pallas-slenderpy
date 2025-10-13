@@ -5,6 +5,9 @@ from slenderpy.future.beam.fd_utils import BoundaryCondition
 
 
 def test_solve_cruvature_approx_order2():
+    ### y"(x) = x on [2,3]  with y(2) -y(2) + 3y"(2) = 0###
+    ###                      and -y(3) + y"(3) = 4 ###
+
     left_bound = 2
     right_bound = 3
     n = 10000
@@ -32,6 +35,8 @@ def test_solve_cruvature_approx_order2():
 
 
 def test_solve_cruvature_approx_order4():
+    ### solve y"" - y" = 0 on [0,1] with y(0) = 0  y"(0) = 1 ###
+    ###                              and y(1) = 0  y"(1) = 0 ###
     left_bound = 0
     right_bound = 1
     n = 10000
