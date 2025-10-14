@@ -23,7 +23,7 @@ def clean_matrix(n: int, order: int, A2: sp.sparse.spmatrix) -> sp.sparse.spmatr
 def clean_rhs(
     n: int, order: int, rhs: Optional[np.ndarray[float]] = None
 ) -> np.ndarray[float]:
-    if rhs is None:
+    if rhs.all() == np.copy(None):
         return np.zeros(n)
 
     rhs[0] = 0
@@ -46,10 +46,10 @@ def _solve_curvature_approx(
 ) -> Optional[np.ndarray[float]]:
     ### equation : EI*(d^4/dx^4)*y - H*(d^2/dx^2)*y = F(x) ###
     A4 = EI * FD.fourth_derivative(n, ds)
-    A2 = -H * FD.second_derivative(n, ds)  # si H = 0 D2 est quand même calculé ?
+    A2 = -H * FD.second_derivative(n, ds)
     BC, rhs_bc = bc.compute(ds, n)
     A2 = clean_matrix(n, bc.order, A2)
-    rhs = clean_rhs(n, ds, rhs)
+    rhs = clean_rhs(n, ds, np.copy(rhs))
     A = A4 + A2 + BC
     rhs_tot = rhs + rhs_bc
     sol = sp.sparse.linalg.spsolve(A, rhs_tot)

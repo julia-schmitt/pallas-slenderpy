@@ -21,7 +21,7 @@ def test_solve_cruvature_approx_order2():
     right = [[-1, 0, 1, 4]]
     order = 2
     bc = BoundaryCondition(order, left, right)
-    sol = _solve_curvature_approx(n, ds, EI, H, bc, rhs=np.copy(x))
+    sol = _solve_curvature_approx(n, ds, EI, H, bc, x)
 
     def exact(x):
         A = -1 / 12

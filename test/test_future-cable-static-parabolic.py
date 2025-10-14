@@ -8,7 +8,7 @@ def test_shape(ast570, random_spans):
     nx = 999
     tol = 1.0e-15
 
-    linm, _, rts = ast570
+    linm, _, rts, _ = ast570
     lspan, tratio, sld = random_spans
 
     tension = rts * tratio
@@ -29,7 +29,7 @@ def test_length(ast570, random_spans):
     atol = 1.0e-06
     rtol = 1.0e-09
 
-    linm, _, rts = ast570
+    linm, _, rts, _ = ast570
     lspan, tratio, sld = random_spans
 
     tension = rts * tratio
@@ -47,7 +47,7 @@ def test_sag(ast570, random_spans):
     nx = 9999
     rtol = 1.0e-09
 
-    linm, _, rts = ast570
+    linm, _, rts, _ = ast570
     lspan, tratio, sld = random_spans
 
     tension = rts * tratio
@@ -77,7 +77,7 @@ def test_chord(ast570, random_spans):
     nx = 9999
     rtol = 1.0e-09
 
-    linm, _, rts = ast570
+    linm, _, rts, _ = ast570
     lspan, tratio, sld = random_spans
     tension = rts * tratio
 
@@ -108,7 +108,7 @@ def test_stress(ast570, random_spans):
     atol = 1.0e-06
     rtol = 1.0e-09
 
-    linm, _, rts = ast570
+    linm, _, rts, _ = ast570
     lspan, tratio, sld = random_spans
     tension = rts * tratio
     x = np.linspace(0, lspan, nx)
