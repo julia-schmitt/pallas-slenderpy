@@ -8,8 +8,8 @@ def ast570():
     linm = 1.571
     axs = 3.653e07
     rts = 1.853e05
-    ei = 2155.  
-    return linm, axs, rts, ei 
+    ei = 2155.0
+    return linm, axs, rts, ei
 
 
 @pytest.fixture(scope="function")

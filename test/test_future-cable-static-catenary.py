@@ -10,8 +10,8 @@ def test_shape(ast570, random_spans):
 
     linm, _, rts, _ = ast570
     lspan, tratio, sld = random_spans
-    #lspan 400m tratio entre 0.15 et 0.20 
-    #sld dif de niveau 10m (pas 0) 
+    # lspan 400m tratio entre 0.15 et 0.20
+    # sld dif de niveau 10m (pas 0)
 
     tension = rts * tratio
     x = np.linspace(0, lspan, nx)

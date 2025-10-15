@@ -11,17 +11,13 @@ def test_solve_cruvature_approx_order2():
     left_bound = 2
     right_bound = 3
     n = 10000
-    ds = (right_bound - left_bound) / (n - 1)
     x = np.linspace(left_bound, right_bound, n)
-
-    EI = 0
-    H = -1
 
     left = [[1, -1, 3, 0]]
     right = [[-1, 0, 1, 4]]
     order = 2
     bc = BoundaryCondition(order, left, right)
-    sol = _solve_curvature_approx(n, ds, EI, H, bc, x)
+    sol = _solve_curvature_approx(n=n, bc=bc, lspan=1, tratio=1, rts=-1, EI=0, rhs=x)
 
     def exact(x):
         A = -1 / 12
@@ -40,16 +36,13 @@ def test_solve_cruvature_approx_order4():
     left_bound = 0
     right_bound = 1
     n = 10000
-    ds = (right_bound - left_bound) / (n - 1)
     x = np.linspace(left_bound, right_bound, n)
-
-    EI = 1
-    H = 1
 
     left = [[1, 0, 0, 0], [0, 0, 1, 1]]
     right = [[1, 0, 0, 0], [0, 0, 1, 0]]
     bc = BoundaryCondition(4, left, right)
-    sol = _solve_curvature_approx(n, ds, EI, H, bc)
+    rhs = np.zeros(n)
+    sol = _solve_curvature_approx(n=n, bc=bc, lspan=1, tratio=1, rts=1, EI=1, rhs=rhs)
 
     def exact(x):
         A = -1 / (np.exp(1) ** 2 - 1)
