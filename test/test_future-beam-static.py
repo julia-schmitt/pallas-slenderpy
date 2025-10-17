@@ -1,6 +1,6 @@
 import numpy as np
 
-from slenderpy.future.beam.static import _solve_curvature_approx
+from slenderpy.future.beam.static import _solve_curvature_approx, _solve_curvature_exact
 from slenderpy.future.beam.fd_utils import BoundaryCondition
 
 
@@ -52,6 +52,36 @@ def test_solve_cruvature_approx_order4():
         return A * np.exp(x) + B * np.exp(-x) + C * x + D
 
     atol = 1.0e-05
+    rtol = 1.0e-09
+
+    assert np.allclose(exact(x), sol, atol=atol, rtol=rtol)
+
+
+def test_solve_curvature_exact():
+    n = 1000
+    lmin = -1.0
+    lmax = 1.0
+    lspan = lmax - lmin
+    x = np.linspace(lmin, lmax, n)
+
+    def rhs(x):
+        return (
+            -24.0 * (1 + 4 * x**2) ** (-5.0 / 2)
+            + 480 * x**2 * (1 + 4 * x**2) ** (-7.0 / 2)
+            - 2
+        )
+
+    left = [[1, 0, 0, lmin**2], [0, 1, 0, 2 * lmin]]
+    right = [[1, 0, 0, lmax**2], [0, 1, 0, 2 * lmax]]
+    bc = BoundaryCondition(4, left, right)
+    sol = _solve_curvature_exact(
+        n=n, bc=bc, lspan=lspan, tratio=1, rts=1, EI=1, rhs=rhs(x)
+    )
+
+    def exact(x):
+        return x**2
+
+    atol = 1.0e-03
     rtol = 1.0e-09
 
     assert np.allclose(exact(x), sol, atol=atol, rtol=rtol)

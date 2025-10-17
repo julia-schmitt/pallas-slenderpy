@@ -60,3 +60,39 @@ def _solve_curvature_approx(
 
     sol = sp.sparse.linalg.spsolve(A, rhs_tot)
     return sol
+
+
+def compute_curvature(n: int, ds: float, y: np.ndarray[float]) -> np.ndarray[float]:
+    y_second = FD.second_derivative(n, ds) @ y
+    y_first = FD.first_derivative(n, ds) @ y
+    return y_second * np.power((np.ones(n) + np.power(y_first, 2)), -3 / 2.0)
+
+
+def _solve_curvature_exact(
+    n: int,
+    bc: FD.BoundaryCondition,
+    lspan: float = 400.0,
+    tratio: float = 0.17,
+    rts: float = 1.853e05,
+    EI: float = 2155.0,
+    rhs: Optional[np.ndarray[float]] = None,
+) -> Optional[np.ndarray[float]]:
+
+    ds = lspan / (n - 1)
+    H = rts * tratio
+    Y0 = _solve_curvature_approx(n, bc, lspan, tratio, rts, EI, rhs)
+
+    D2 = FD.second_derivative(n, ds)
+    D2 = clean_matrix(bc.order, D2)
+
+    rhs = clean_rhs(bc.order, np.copy(rhs))
+    BC, rhs_bc = bc.compute(ds, n)
+
+    def equation(y):
+        curv = compute_curvature(n, ds, y)
+        return EI * D2 @ curv - H * D2 @ y + BC @ y - rhs - rhs_bc
+
+    sol = sp.optimize.root(equation, Y0)
+    # hybr lm krylov
+
+    return sol.x
