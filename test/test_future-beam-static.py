@@ -1,6 +1,6 @@
 import numpy as np
 
-from slenderpy.future.beam.static import _solve_curvature_approx, _solve_curvature_exact
+import slenderpy.future.beam.static as ST
 from slenderpy.future.beam.fd_utils import BoundaryCondition, plot_function
 
 
@@ -20,7 +20,7 @@ def test_solve_cruvature_approx_order2(plot=False):
     right = [[-1, 0, 1, 4]]
     order = 2
     bc = BoundaryCondition(order, left, right)
-    sol = _solve_curvature_approx(n=n, bc=bc, lspan=1, tension=-1, ei=0, rhs=x)
+    sol = ST._solve_curvature_approx(n=n, bc=bc, lspan=1, tension=-1, ei=0, rhs=x)
 
     def exact(x):
         A = -1 / 12
@@ -54,7 +54,7 @@ def test_solve_cruvature_approx_order4(plot=False):
     right = [[1, 0, 0, 0], [0, 0, 1, 0]]
     bc = BoundaryCondition(4, left, right)
     rhs = np.zeros(n)
-    sol = _solve_curvature_approx(n=n, bc=bc, lspan=1, tension=1, ei=1, rhs=rhs)
+    sol = ST._solve_curvature_approx(n=n, bc=bc, lspan=1, tension=1, ei=1, rhs=rhs)
 
     def exact(x):
         A = -1 / (np.exp(1) ** 2 - 1)
@@ -70,6 +70,31 @@ def test_solve_cruvature_approx_order4(plot=False):
     rtol = 1.0e-09
 
     assert np.allclose(exact(x), sol, atol=atol, rtol=rtol)
+
+
+def test_curvature(plot=False):
+    """Check the error between the analytic and numerical curvature of cosh(x)."""
+
+    n = 10000
+    lmin = -1.0
+    lmax = 1.0
+    lspan = lmax - lmin
+    x = np.linspace(lmin, lmax, n)
+    ds = lspan / n 
+
+    def curvature_cosh(x):
+        return 1/np.cosh(x)**2
+    
+    numerical_curvature = ST.compute_curvature(n,ds,np.cosh(x))
+    exact_curvature = curvature_cosh(x)
+
+    if plot == True :
+        plot_function(x[1:-1],exact_curvature[1:-1], numerical_curvature[1:-1])
+
+    atol = 1.0e-09
+    rtol = 1.0e-03
+
+    assert np.allclose(exact_curvature[1:-1], numerical_curvature[1:-1], atol=atol, rtol=rtol)
 
 
 def test_solve_curvature_exact(plot=False):
@@ -97,7 +122,7 @@ def test_solve_curvature_exact(plot=False):
     left = [[1, 0, 0, lmin**2], [0, 1, 0, 2 * lmin]]
     right = [[1, 0, 0, lmax**2], [0, 1, 0, 2 * lmax]]
     bc = BoundaryCondition(4, left, right)
-    sol = _solve_curvature_exact(n=n, bc=bc, lspan=lspan, tension=1, ei=1, rhs=rhs(x))
+    sol = ST._solve_curvature_exact(n=n, bc=bc, lspan=lspan, tension=1, ei=1, rhs=rhs(x))
 
     def exact(x):
         return x**2
@@ -109,3 +134,4 @@ def test_solve_curvature_exact(plot=False):
     rtol = 1.0e-09
 
     assert np.allclose(exact(x), sol, atol=atol, rtol=rtol)
+

@@ -52,9 +52,9 @@ def curvature_exact_bending_const():
 
     def exact_solution(x):
         return np.cosh(x)
-
+    
     def rhs(x):
-        return 1.0 / np.cosh(x) - 2.0 / np.cosh(x) ** 3 - np.cosh(x)
+        return -2 / np.cosh(x)**2 + 6.0 * np.sinh(x)**2 / np.cosh(x) ** 4 - np.cosh(x)
 
     left = [[1, 0, 0, np.cosh(lmin)], [0, 1, 0, np.sinh(lmin)]]
     right = [[1, 0, 0, np.cosh(lmax)], [0, 1, 0, np.sinh(lmax)]]
@@ -66,7 +66,7 @@ def curvature_exact_bending_const():
     function = exact_solution(x)
 
     plt.plot(x, function, "--", color="blue", label="analytical")
-    plt.plot(x, sol, color="orange", label="FD solution")
+    plt.plot(x, sol, color="orange", label="FD solution exact solution")
     plt.plot(x, approx_curvature, color="green", label="FD solution approx curvature")
     plt.legend()
     plt.show()

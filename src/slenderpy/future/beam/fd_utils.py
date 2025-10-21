@@ -8,7 +8,7 @@ import scipy as sp
 def plot_function(x, exact, sol):
     """Function to plot the analytical and the numerical solution."""
     plt.plot(x, exact, "--", color="blue", label="analytical")
-    plt.plot(x, sol, color="orange", label="FD solution")
+    plt.plot(x, sol, color="orange", label="numerical")
     plt.legend()
     plt.show()
 
