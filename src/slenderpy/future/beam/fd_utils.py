@@ -1,11 +1,20 @@
 from typing import Tuple, Optional
+import matplotlib.pyplot as plt
 
 import numpy as np
 import scipy as sp
 
 
+def plot_function(x, exact, sol):
+    """Function to plot the analytical and the numerical solution."""
+    plt.plot(x, exact, "--", color="blue", label="analytical")
+    plt.plot(x, sol, color="orange", label="FD solution")
+    plt.legend()
+    plt.show()
+
+
 def first_derivative(n: int, ds: float) -> sp.sparse.spmatrix:
-    # centered scheme, the first and last line have to be completed with BC (order 2)
+    """Centered scheme, the first and last line have to be completed with BC (order 2)."""
 
     dinf = -1.0 * np.ones((n - 1,)) / (2 * ds)
     dsup = +1.0 * np.ones((n - 1,)) / (2 * ds)
@@ -19,7 +28,7 @@ def first_derivative(n: int, ds: float) -> sp.sparse.spmatrix:
 
 
 def second_derivative(n: int, ds: float) -> sp.sparse.spmatrix:
-    # centered scheme, the first and last line have to be completed with BC (order 2)
+    """Centered scheme, the first and last line have to be completed with BC (order 2)."""
 
     dinf = +1.0 * np.ones((n - 1,)) / ds**2
     diag = -2.0 * np.ones((n,)) / ds**2
@@ -36,7 +45,7 @@ def second_derivative(n: int, ds: float) -> sp.sparse.spmatrix:
 
 
 def fourth_derivative(n: int, ds: float) -> sp.sparse.spmatrix:
-    # centered scheme, the two first and two last line have to be completed with BC (order 4)
+    """Centered scheme, the two first and two last line have to be completed with BC (order 4)."""
 
     dinf2 = +1.0 * np.ones((n - 2)) / ds**4
     dinf1 = -4.0 * np.ones((n - 1,)) / ds**4
@@ -53,63 +62,6 @@ def fourth_derivative(n: int, ds: float) -> sp.sparse.spmatrix:
     res = sp.sparse.diags([dinf2, dinf1, diag, dsup1, dsup2], [-2, -1, 0, 1, 2])
 
     return res
-
-
-def _check_order4(left, right):
-    if left is None:
-        left = ((1.0, 0.0, 0.0, 0.0), (0.0, 1.0, 0.0, 0.0))
-
-    if right is None:
-        right = ((1.0, 0.0, 0.0, 0.0), (0.0, 1.0, 0.0, 0.0))
-
-    if (not isinstance(left, (tuple, list))) or (not isinstance(right, (tuple, list))):
-        raise TypeError("Inputs left and right must be list or tuples")
-
-    if len(left) != 2 or len(right) != 2:
-        raise ValueError("Need two boundary conditions for each extremity")
-
-    if (
-        len(left[0]) != 4
-        or len(left[1]) != 4
-        or len(right[0]) != 4
-        or len(right[1]) != 4
-    ):
-        raise ValueError("Inputs must have 4 elements for each boundary condition")
-
-    rankL = np.linalg.matrix_rank(left)
-    rankR = np.linalg.matrix_rank(right)
-
-    if rankL < 2:
-        raise ValueError("The left boundary conditions are not linearly independant")
-
-    if rankR < 2:
-        raise ValueError("The right boundary conditions are not linearly independant")
-
-
-def _check_order2(left, right):
-    if left is None:
-        left = ((1.0, 0.0, 0.0, 0.0),)
-
-    if right is None:
-        right = ((1.0, 0.0, 0.0, 0.0),)
-
-    if (not isinstance(left, (tuple, list))) or (not isinstance(right, (tuple, list))):
-        raise TypeError("Inputs left and right must be list or tuples")
-
-    if len(left) != 1 or len(right) != 1:
-        raise ValueError("Need one boundary condition for each extremity")
-
-    if len(left[0]) != 4 or len(right[0]) != 4:
-        raise ValueError("Inputs must have 4 elements for each boundary condition")
-
-    rankL = np.linalg.matrix_rank(left)
-    rankR = np.linalg.matrix_rank(right)
-
-    if rankL < 1:
-        raise ValueError("There is no left boundary condition")
-
-    if rankR < 1:
-        raise ValueError("There is no right boundary condition")
 
 
 class BoundaryCondition:
@@ -129,19 +81,86 @@ class BoundaryCondition:
         if order != 2 and order != 4:
             raise ValueError("Order must be 2 or 4")
 
-        if order == 4:
-            _check_order4(left, right)
-
-        if order == 2:
-            _check_order2(left, right)
-
         self.left = left
         self.right = right
+
+        if order == 4:
+            self._check_order4()
+
+        if order == 2:
+            self._check_order2()
+
         self.order = order
+
+    def _check_order2(self):
+        """Check the validity of boundary conditions for order 2."""
+        if self.left is None:
+            self.left = ((1.0, 0.0, 0.0, 0.0),)
+
+        if self.right is None:
+            self.right = ((1.0, 0.0, 0.0, 0.0),)
+
+        if (not isinstance(self.left, (tuple, list))) or (
+            not isinstance(self.right, (tuple, list))
+        ):
+            raise TypeError("Inputs left and right must be list or tuples")
+
+        if len(self.left) != 1 or len(self.right) != 1:
+            raise ValueError("Need one boundary condition for each extremity")
+
+        if len(self.left[0]) != 4 or len(self.right[0]) != 4:
+            raise ValueError("Inputs must have 4 elements for each boundary condition")
+
+        rankL = np.linalg.matrix_rank(self.left)
+        rankR = np.linalg.matrix_rank(self.right)
+
+        if rankL < 1:
+            raise ValueError("There is no left boundary condition")
+
+        if rankR < 1:
+            raise ValueError("There is no right boundary condition")
+
+    def _check_order4(self):
+        """Check the validity of boundary conditions for order 4."""
+        if self.left is None:
+            self.left = ((1.0, 0.0, 0.0, 0.0), (0.0, 1.0, 0.0, 0.0))
+
+        if self.right is None:
+            self.right = ((1.0, 0.0, 0.0, 0.0), (0.0, 1.0, 0.0, 0.0))
+
+        if (not isinstance(self.left, (tuple, list))) or (
+            not isinstance(self.right, (tuple, list))
+        ):
+            raise TypeError("Inputs left and right must be list or tuples")
+
+        if len(self.left) != 2 or len(self.right) != 2:
+            raise ValueError("Need two boundary conditions for each extremity")
+
+        if (
+            len(self.left[0]) != 4
+            or len(self.left[1]) != 4
+            or len(self.right[0]) != 4
+            or len(self.right[1]) != 4
+        ):
+            raise ValueError("Inputs must have 4 elements for each boundary condition")
+
+        rankL = np.linalg.matrix_rank(self.left)
+        rankR = np.linalg.matrix_rank(self.right)
+
+        if rankL < 2:
+            raise ValueError(
+                "The left boundary conditions are not linearly independant"
+            )
+
+        if rankR < 2:
+            raise ValueError(
+                "The right boundary conditions are not linearly independant"
+            )
 
     def compute(
         self, ds: float, n: int
     ) -> Tuple[sp.sparse.spmatrix, np.ndarray[float]]:
+        """Compute the matrices of the scheme and the right-hand side linked to the boundary conditions."""
         a1, b1, c1, d1 = self.left[0]
         a4, b4, c4, d4 = self.right[0]
 
@@ -177,19 +196,19 @@ class BoundaryCondition:
         return bc_matrix, rhs
 
 
-def rot_free(y=[0.0, 0.0], d2y=[0.0, 0.0]):
+def rot_free(y_left=0, y_right=0, d2y_left=0, d2y_right=0):
     """Get boundary condition with free derivative and constrained value and curvature."""
     return BoundaryCondition(
         4,
-        left=((1.0, 0.0, 0.0, y[0]), (0.0, 0.0, 1.0, d2y[0])),
-        right=((1.0, 0.0, 0.0, y[1]), (0.0, 0.0, 1.0, d2y[1])),
+        left=((1.0, 0.0, 0.0, y_left), (0.0, 0.0, 1.0, d2y_left)),
+        right=((1.0, 0.0, 0.0, y_right), (0.0, 0.0, 1.0, d2y_right)),
     )
 
 
-def rot_none(y=[0.0, 0.0], dy=[0.0, 0.0]):
+def rot_none(y_left=0, y_right=0, d2y_left=0, d2y_right=0):
     """Get boundary condition with free curvature and constrained value and derivative."""
     return BoundaryCondition(
         4,
-        left=((1.0, 0.0, 0.0, y[0]), (0.0, 0.0, 1.0, dy[0])),
-        right=((1.0, 0.0, 0.0, y[1]), (0.0, 0.0, 1.0, dy[1])),
+        left=((1.0, 0.0, 0.0, y_left), (0.0, 0.0, 1.0, d2y_left)),
+        right=((1.0, 0.0, 0.0, y_right), (0.0, 0.0, 1.0, d2y_right)),
     )

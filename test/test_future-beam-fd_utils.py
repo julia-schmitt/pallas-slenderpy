@@ -4,8 +4,11 @@ import scipy as sp
 import slenderpy.future.beam.fd_utils as FD
 
 
-def test_first_derivative():
-    ### y'(x) = sin(x) on [-1,2] with y(-1) = 3 ###
+def test_first_derivative(plot=False):
+    """Check the error between the analytic and numerical solution of:
+    y'(x) = sin(x) on [-1,2]
+    y(-1) = 3
+    """
 
     left_bound = -1
     right_bound = 2
@@ -25,17 +28,23 @@ def test_first_derivative():
 
     sol = sp.sparse.linalg.spsolve(A + bc_matrix, rhs)
 
-    atol = 1.0e-06
-    rtol = 1.0e-09
-
     def exact(x):
         return -np.cos(x) + 3 + np.cos(-1)
+
+    if plot == True:
+        FD.plot_function(x, exact(x), sol)
+
+    atol = 1.0e-06
+    rtol = 1.0e-09
 
     assert np.allclose(exact(x), sol, atol=atol, rtol=rtol)
 
 
-def test_second_derivative():
-    ### y"(x) = 0 on [0,1]  with y(0) = 0 and y'(1) = 2 ###
+def test_second_derivative(plot=False):
+    """Check the error between the analytic and numerical solution of:
+    y"(x) = 0 on [0,1]
+    y(0) = 0 and y'(1) = 2
+    """
 
     left_bound = 0
     right_bound = 1
@@ -56,17 +65,23 @@ def test_second_derivative():
 
     sol = sp.sparse.linalg.spsolve(A + bc_matrix, rhs)
 
-    atol = 1.0e-06
-    rtol = 1.0e-09
-
     def exact(x):
         return 2 * x + 1
+
+    if plot == True:
+        FD.plot_function(x, exact(x), sol)
+
+    atol = 1.0e-06
+    rtol = 1.0e-09
 
     assert np.allclose(exact(x), sol, atol=atol, rtol=rtol)
 
 
-def test_boundary_condition_order2():
-    ### y"(x) = 0 on [0,1]  with y(0) = 0 and y'(1) = 2 ###
+def test_boundary_condition_order2(plot=False):
+    """Check the error between the analytic and numerical solution of:
+    y"(x) = 0 on [0,1]
+    y(0) = 0 and y'(1) = 2
+    """
 
     left_bound = 0
     right_bound = 1
@@ -83,18 +98,27 @@ def test_boundary_condition_order2():
 
     sol = sp.sparse.linalg.spsolve(A + BC, rhs)
 
-    atol = 1.0e-06
-    rtol = 1.0e-09
-
     def exact(x):
         return 2 * x + 1
+
+    if plot == True:
+        FD.plot_function(x, exact(x), sol)
+
+    atol = 1.0e-06
+    rtol = 1.0e-09
 
     assert np.allclose(exact(x), sol, atol=atol, rtol=rtol)
 
 
-def test_fourth_derivative():
-    ### y""(x) = 0 on [0,1]  with y(0) = 0 and y'(0) = 1 ###
-    ###                           y(1) = 1 and y'(1) = 2 ###
+def test_fourth_derivative(plot=False):
+    """Check the error between the analytic and numerical solution of:
+    y""(x) = 0 on [0,1]
+    y(0) = 0
+    y'(0) = 1
+    y(1) = 1
+    y'(1) = 2
+    """
+
     left_bound = 0
     right_bound = 1
     n = 10000
@@ -119,18 +143,26 @@ def test_fourth_derivative():
 
     sol = sp.sparse.linalg.spsolve(A + bc_matrix, rhs)
 
-    atol = 1.0e-06
-    rtol = 1.0e-03
-
     def exact(x):
         return x**3 - x**2 + x
+
+    if plot == True:
+        FD.plot_function(x, exact(x), sol)
+
+    atol = 1.0e-06
+    rtol = 1.0e-03
 
     assert np.allclose(exact(x), sol, atol=atol, rtol=rtol)
 
 
-def test_boundary_condition_order4():
-    ### y""(x) = 0 on [0,1]  with y(0) = 0 and y'(0) = 1 ###
-    ###                           y(1) = 1 and y'(1) = 2 ###
+def test_boundary_condition_order4(plot=False):
+    """Check the error between the analytic and numerical solution of:
+    y""(x) = 0 on [0,1]
+    y(0) = 0
+    y'(0) = 1
+    y(1) = 1
+    y'(1) = 2
+    """
 
     left_bound = 0
     right_bound = 1
@@ -147,10 +179,13 @@ def test_boundary_condition_order4():
 
     sol = sp.sparse.linalg.spsolve(A + BC, rhs)
 
-    atol = 1.0e-04
-    rtol = 1.0e-04
-
     def exact(x):
         return x**3 - x**2 + x
+
+    if plot == True:
+        FD.plot_function(x, exact(x), sol)
+
+    atol = 1.0e-04
+    rtol = 1.0e-04
 
     assert np.allclose(exact(x), sol, atol=atol, rtol=rtol)

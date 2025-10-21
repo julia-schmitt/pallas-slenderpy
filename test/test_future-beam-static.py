@@ -1,12 +1,15 @@
 import numpy as np
 
 from slenderpy.future.beam.static import _solve_curvature_approx, _solve_curvature_exact
-from slenderpy.future.beam.fd_utils import BoundaryCondition
+from slenderpy.future.beam.fd_utils import BoundaryCondition, plot_function
 
 
-def test_solve_cruvature_approx_order2():
-    ### y"(x) = x on [2,3]  with y(2) -y(2) + 3y"(2) = 0###
-    ###                      and -y(3) + y"(3) = 4 ###
+def test_solve_cruvature_approx_order2(plot=False):
+    """Check the error between the analytic and numerical solution of:
+    y"(x) = x on [2,3]
+    y(2) -y(2) + 3y"(2) = 0
+    -y(3) + y"(3) = 4
+    """
 
     left_bound = 2
     right_bound = 3
@@ -17,12 +20,15 @@ def test_solve_cruvature_approx_order2():
     right = [[-1, 0, 1, 4]]
     order = 2
     bc = BoundaryCondition(order, left, right)
-    sol = _solve_curvature_approx(n=n, bc=bc, lspan=1, tratio=1, rts=-1, EI=0, rhs=x)
+    sol = _solve_curvature_approx(n=n, bc=bc, lspan=1, tension=-1, ei=0, rhs=x)
 
     def exact(x):
         A = -1 / 12
         B = -63 / 12
         return x**3 / 6 + A * x + B
+
+    if plot == True:
+        plot_function(x, exact(x), sol)
 
     atol = 1.0e-09
     rtol = 1.0e-04
@@ -30,9 +36,15 @@ def test_solve_cruvature_approx_order2():
     assert np.allclose(exact(x), sol, atol=atol, rtol=rtol)
 
 
-def test_solve_cruvature_approx_order4():
-    ### solve y"" - y" = 0 on [0,1] with y(0) = 0  y"(0) = 1 ###
-    ###                              and y(1) = 0  y"(1) = 0 ###
+def test_solve_cruvature_approx_order4(plot=False):
+    """Check the error between the analytic and numerical solution of:
+    y"" - y" = 0 on [0,1]
+    y(0) = 0
+    y"(0) = 1
+    y(1) = 0
+    y"(1) = 0
+    """
+
     left_bound = 0
     right_bound = 1
     n = 10000
@@ -42,7 +54,7 @@ def test_solve_cruvature_approx_order4():
     right = [[1, 0, 0, 0], [0, 0, 1, 0]]
     bc = BoundaryCondition(4, left, right)
     rhs = np.zeros(n)
-    sol = _solve_curvature_approx(n=n, bc=bc, lspan=1, tratio=1, rts=1, EI=1, rhs=rhs)
+    sol = _solve_curvature_approx(n=n, bc=bc, lspan=1, tension=1, ei=1, rhs=rhs)
 
     def exact(x):
         A = -1 / (np.exp(1) ** 2 - 1)
@@ -51,13 +63,24 @@ def test_solve_cruvature_approx_order4():
         C = -D - A * np.exp(1) - B * np.exp(-1)
         return A * np.exp(x) + B * np.exp(-x) + C * x + D
 
+    if plot == True:
+        plot_function(x, exact(x), sol)
+
     atol = 1.0e-05
     rtol = 1.0e-09
 
     assert np.allclose(exact(x), sol, atol=atol, rtol=rtol)
 
 
-def test_solve_curvature_exact():
+def test_solve_curvature_exact(plot=False):
+    """Check the error between the analytic and numerical solution of:
+    (d^2/dx^2)*(y"*(1 + y'²)^(3/2)) - y" = -24(1 + 4x²)^(5/2) + 480x²(1 + 4x²)^(7/2) - 2 on [-1,1]
+    y(-1) = 1
+    y'(-1) = -2
+    y(1) = 1
+    y'(1) = 2
+    """
+
     n = 1000
     lmin = -1.0
     lmax = 1.0
@@ -74,12 +97,13 @@ def test_solve_curvature_exact():
     left = [[1, 0, 0, lmin**2], [0, 1, 0, 2 * lmin]]
     right = [[1, 0, 0, lmax**2], [0, 1, 0, 2 * lmax]]
     bc = BoundaryCondition(4, left, right)
-    sol = _solve_curvature_exact(
-        n=n, bc=bc, lspan=lspan, tratio=1, rts=1, EI=1, rhs=rhs(x)
-    )
+    sol = _solve_curvature_exact(n=n, bc=bc, lspan=lspan, tension=1, ei=1, rhs=rhs(x))
 
     def exact(x):
         return x**2
+
+    if plot == True:
+        plot_function(x, exact(x), sol)
 
     atol = 1.0e-03
     rtol = 1.0e-09
