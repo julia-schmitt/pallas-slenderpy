@@ -4,34 +4,6 @@ import numpy as np
 import scipy as sp
 
 import slenderpy.future.beam.fd_utils as FD
-from slenderpy.future._constant import _GRAVITY
-
-
-def clean_matrix(order: int, A2: sp.sparse.spmatrix) -> sp.sparse.spmatrix:
-    """Earase the proper coefficient in the scheme matrix to take into account the bounday conditions."""
-    if order == 4:
-        A2.data[0, 0] = 0
-        A2.data[0, -3] = 0
-
-        A2.data[1, 1] = 0
-        A2.data[1, -2] = 0
-
-        A2.data[2, -1] = 0
-        A2.data[2, 2] = 0
-
-    return A2
-
-
-def clean_rhs(order: int, rhs: Optional[np.ndarray[float]] = None) -> np.ndarray[float]:
-    """Earase the proper coefficient in the right hand-side to take into account the bounday conditions."""
-    rhs[0] = 0
-    rhs[-1] = 0
-
-    if order == 4:
-        rhs[1] = 0
-        rhs[-2] = 0
-
-    return rhs
 
 
 def _solve_curvature_approx(
@@ -39,7 +11,8 @@ def _solve_curvature_approx(
     bc: FD.BoundaryCondition,
     lspan: float = 400.0,
     tension: float = 1.853e04,
-    ei: float = 2155.0,
+    ei_min: float = 2155.0,
+    ei_max: float = 2155.0,
     rhs: Optional[np.ndarray[float]] = None,
 ) -> Optional[np.ndarray[float]]:
     """Solve equation of the form : ei*(d^4/dx^4)*y - tension*(d^2/dx^2)*y = rhs."""
@@ -48,11 +21,13 @@ def _solve_curvature_approx(
     if rhs is None:
         rhs = np.zeros(n)
 
+    ei = (ei_max + ei_min) / 2
+
     A4 = ei * FD.fourth_derivative(n, ds)
     A2 = -tension * FD.second_derivative(n, ds)
     BC, rhs_bc = bc.compute(ds, n)
-    A2 = clean_matrix(bc.order, A2)
-    rhs = clean_rhs(bc.order, np.copy(rhs))
+    A2 = FD.clean_matrix(bc.order, A2)
+    rhs = FD.clean_rhs(bc.order, np.copy(rhs))
     A = A4 + A2 + BC
     rhs_tot = rhs + rhs_bc
 
@@ -65,6 +40,9 @@ def compute_curvature(n: int, ds: float, y: np.ndarray[float]) -> np.ndarray[flo
     y_second = FD.second_derivative(n, ds) @ y
     y_first = FD.first_derivative(n, ds) @ y
     return y_second * (np.ones(n) + y_first**2) ** (-3 / 2.0)
+
+def compute_bending_moment(curvature : np.ndarray[float], ei_min : float, ei_max : float) -> np.ndarray[float]:
+    return (ei_min + ei_max)/2*curvature 
 
 
 def fixed_point_algo(n,ds,ei,tension,Y0,D2,BC,rhs,rhs_bc):
@@ -90,7 +68,8 @@ def _solve_curvature_exact(
     bc: FD.BoundaryCondition,
     lspan: float = 400.0,
     tension: float = 1.853e04,
-    ei: float = 2155.0,
+    ei_min: float = 2155.0,
+    ei_max: float = 2155.0,
     rhs: Optional[np.ndarray[float]] = None,
 ) -> Optional[np.ndarray[float]]:
     """Solve equation of the form : ei*(d^2/dx^2)*C(y) - tension*(d^2/dx^2)*y = rhs, where C(y) is the curvature."""
@@ -99,17 +78,19 @@ def _solve_curvature_exact(
         rhs = np.zeros(n)
 
     ds = lspan / (n - 1)
-    Y0 = _solve_curvature_approx(n, bc, lspan, tension, ei, rhs)
+    Y0 = _solve_curvature_approx(n, bc, lspan, tension, ei_min, ei_max, rhs)
 
     D2 = FD.second_derivative(n, ds)
-    D2 = clean_matrix(bc.order, D2)
+    D2 = FD.clean_matrix(bc.order, D2)
 
-    rhs = clean_rhs(bc.order, np.copy(rhs))
+    rhs = FD.clean_rhs(bc.order, np.copy(rhs))
     BC, rhs_bc = bc.compute(ds, n)
 
     def equation(y):
-        curv = compute_curvature(n, ds, y)
-        return ei * D2 @ curv - tension * D2 @ y + BC @ y - rhs - rhs_bc
+        curvature = compute_curvature(n, ds, y)
+        bending_moment = compute_bending_moment(curvature, ei_min, ei_max)
+
+        return D2 @ bending_moment  - tension * D2 @ y + BC @ y - rhs - rhs_bc
     
     # sol = fixed_point_algo(n,ds,ei,tension,Y0,D2,BC,rhs,rhs_bc)
     sol = sp.optimize.root(equation, Y0)

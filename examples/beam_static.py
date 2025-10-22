@@ -28,7 +28,7 @@ def curvature_approx_bending_const():
     right = [[1, 0, 0, 0], [0, 0, 1, 0]]
     bc = FD.BoundaryCondition(4, left, right)
     function = exact_solution(x)
-    sol = _solve_curvature_approx(n=n, bc=bc, lspan=1, tension=1, ei=1, rhs=np.zeros(n))
+    sol = _solve_curvature_approx(n=n, bc=bc, lspan=1, tension=1, ei_min=1, ei_max = 1, rhs=np.zeros(n))
 
     plt.plot(x, function, "--", color="blue", label="analytical")
     plt.plot(x, sol, color="orange", label="FD solution")
@@ -59,9 +59,9 @@ def curvature_exact_bending_const():
     left = [[1, 0, 0, np.cosh(lmin)], [0, 1, 0, np.sinh(lmin)]]
     right = [[1, 0, 0, np.cosh(lmax)], [0, 1, 0, np.sinh(lmax)]]
     bc = FD.BoundaryCondition(4, left, right)
-    sol = _solve_curvature_exact(n=n, bc=bc, lspan=lspan, tension=1, ei=1, rhs=rhs(x))
+    sol = _solve_curvature_exact(n=n, bc=bc, lspan=lspan, tension=1, ei_min=1, ei_max = 1, rhs=rhs(x))
     approx_curvature = _solve_curvature_approx(
-        n=n, bc=bc, lspan=lspan, tension=1, ei=1, rhs=rhs(x)
+        n=n, bc=bc, lspan=lspan, tension=1, ei_min=1, ei_max = 1, rhs=rhs(x)
     )
     function = exact_solution(x)
 

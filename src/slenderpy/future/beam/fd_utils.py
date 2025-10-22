@@ -64,6 +64,33 @@ def fourth_derivative(n: int, ds: float) -> sp.sparse.spmatrix:
     return res
 
 
+def clean_matrix(order: int, A2: sp.sparse.spmatrix) -> sp.sparse.spmatrix:
+    """Earase the proper coefficient in the scheme matrix to take into account the bounday conditions."""
+    if order == 4:
+        A2.data[0, 0] = 0
+        A2.data[0, -3] = 0
+
+        A2.data[1, 1] = 0
+        A2.data[1, -2] = 0
+
+        A2.data[2, -1] = 0
+        A2.data[2, 2] = 0
+
+    return A2
+
+
+def clean_rhs(order: int, rhs: Optional[np.ndarray[float]] = None) -> np.ndarray[float]:
+    """Earase the proper coefficient in the right hand-side to take into account the bounday conditions."""
+    rhs[0] = 0
+    rhs[-1] = 0
+
+    if order == 4:
+        rhs[1] = 0
+        rhs[-2] = 0
+
+    return rhs
+
+
 class BoundaryCondition:
     """Object to deal with boundary conditions."""
 
