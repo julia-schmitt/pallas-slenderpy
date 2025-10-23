@@ -99,7 +99,7 @@ def test_curvature(plot=False):
 
 def test_solve_curvature_exact(plot=False):
     """Check the error between the analytic and numerical solution of:
-    (d^2/dx^2)*(y"*(1 + y'²)^(3/2)) - y" = -24(1 + 4x²)^(5/2) + 480x²(1 + 4x²)^(7/2) - 2 on [-1,1]
+    8.3*(d^2/dx^2)*(y"*(1 + y'²)^(3/2)) + 5 y" = -24(1 + 4x²)^(5/2) + 480x²(1 + 4x²)^(7/2) - 2 on [-1,1]
     y(-1) = 1
     y'(-1) = -2
     y(1) = 1
@@ -114,15 +114,15 @@ def test_solve_curvature_exact(plot=False):
 
     def rhs(x):
         return (
-            -24.0 * (1 + 4 * x**2) ** (-5.0 / 2)
-            + 480 * x**2 * (1 + 4 * x**2) ** (-7.0 / 2)
-            - 2
+            8.3 * (-24.0 * (1 + 4 * x**2) ** (-5.0 / 2)
+            + 480 * x**2 * (1 + 4 * x**2) ** (-7.0 / 2))
+            - 2 * (-5)
         )
 
     left = [[1, 0, 0, lmin**2], [0, 1, 0, 2 * lmin]]
     right = [[1, 0, 0, lmax**2], [0, 1, 0, 2 * lmax]]
     bc = BoundaryCondition(4, left, right)
-    sol = ST._solve_curvature_exact(n=n, bc=bc, lspan=lspan, tension=1, ei_min=1, ei_max = 1, rhs=rhs(x))
+    sol = ST._solve_curvature_exact(n=n, bc=bc, lspan=lspan, tension=-5, ei_min=8.3, ei_max = 8.3, rhs=rhs(x))
 
     def exact(x):
         return x**2
