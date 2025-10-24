@@ -28,7 +28,7 @@ def test_solve_cruvature_approx_order2(plot=False):
     right = [[-1, 0, 1, 4]]
     order = 2
     bc = BoundaryCondition(order, left, right)
-    sol = ST._solve_curvature_approx(n=n, bc=bc, lspan=1, tension=-1, ei_min=0, ei_max = 0, rhs=x)
+    sol = ST._solve_curvature_approx(n=n, bc=bc, lspan=1, tension=-1, ei_max = 0, rhs=x)
 
     def exact(x):
         A = -1 / 12
@@ -62,7 +62,7 @@ def test_solve_cruvature_approx_order4(plot=False):
     right = [[1, 0, 0, 0], [0, 0, 1, 0]]
     bc = BoundaryCondition(4, left, right)
     rhs = np.zeros(n)
-    sol = ST._solve_curvature_approx(n=n, bc=bc, lspan=1, tension=1, ei_min=1, ei_max=1, rhs=rhs)
+    sol = ST._solve_curvature_approx(n=n, bc=bc, lspan=1, tension=1, ei_max=1, rhs=rhs)
 
     def exact(x):
         A = -1 / (np.exp(1) ** 2 - 1)
@@ -130,7 +130,7 @@ def test_solve_curvature_exact(plot=False):
     left = [[1, 0, 0, lmin**2], [0, 1, 0, 2 * lmin]]
     right = [[1, 0, 0, lmax**2], [0, 1, 0, 2 * lmax]]
     bc = BoundaryCondition(4, left, right)
-    sol = ST._solve_curvature_exact(n=n, bc=bc, lspan=lspan, tension=-5, ei_min=8.3, ei_max = 8.3, rhs=rhs(x))
+    sol = ST._solve_curvature_exact(n=n, bc=bc, lspan=lspan, tension=-5, ei_max = 8.3, rhs=rhs(x))
 
     def exact(x):
         return x**2
