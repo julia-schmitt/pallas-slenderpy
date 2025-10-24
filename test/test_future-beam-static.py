@@ -1,7 +1,15 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 import slenderpy.future.beam.static as ST
-from slenderpy.future.beam.fd_utils import BoundaryCondition, plot_function
+from slenderpy.future.beam.fd_utils import BoundaryCondition
+
+def _plot(x, exact, sol):
+    """Function to plot the analytical and the numerical solution."""
+    plt.plot(x, exact, "--", color="blue", label="analytical")
+    plt.plot(x, sol, color="orange", label="numerical")
+    plt.legend()
+    plt.show()
 
 
 def test_solve_cruvature_approx_order2(plot=False):
@@ -27,8 +35,8 @@ def test_solve_cruvature_approx_order2(plot=False):
         B = -63 / 12
         return x**3 / 6 + A * x + B
 
-    if plot == True:
-        plot_function(x, exact(x), sol)
+    if plot:
+        _plot(x, exact(x), sol)
 
     atol = 1.0e-09
     rtol = 1.0e-04
@@ -63,8 +71,8 @@ def test_solve_cruvature_approx_order4(plot=False):
         C = -D - A * np.exp(1) - B * np.exp(-1)
         return A * np.exp(x) + B * np.exp(-x) + C * x + D
 
-    if plot == True:
-        plot_function(x, exact(x), sol)
+    if plot:
+        _plot(x, exact(x), sol)
 
     atol = 1.0e-05
     rtol = 1.0e-09
@@ -88,8 +96,8 @@ def test_curvature(plot=False):
     numerical_curvature = ST.compute_curvature(n,ds,np.cosh(x))
     exact_curvature = curvature_cosh(x)
 
-    if plot == True :
-        plot_function(x[1:-1],exact_curvature[1:-1], numerical_curvature[1:-1])
+    if plot :
+        _plot(x[1:-1],exact_curvature[1:-1], numerical_curvature[1:-1])
 
     atol = 1.0e-09
     rtol = 1.0e-03
@@ -127,8 +135,8 @@ def test_solve_curvature_exact(plot=False):
     def exact(x):
         return x**2
 
-    if plot == True:
-        plot_function(x, exact(x), sol)
+    if plot:
+        _plot(x, exact(x), sol)
 
     atol = 1.0e-03
     rtol = 1.0e-09

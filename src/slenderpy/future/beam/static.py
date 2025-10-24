@@ -41,26 +41,9 @@ def compute_curvature(n: int, ds: float, y: np.ndarray[float]) -> np.ndarray[flo
     y_first = FD.first_derivative(n, ds) @ y
     return y_second * (np.ones(n) + y_first**2) ** (-3 / 2.0)
 
+
 def compute_bending_moment(curvature : np.ndarray[float], ei_min : float, ei_max : float) -> np.ndarray[float]:
     return (ei_min + ei_max)/2*curvature 
-
-
-def fixed_point_algo(n,ds,ei,tension,Y0,D2,BC,rhs,rhs_bc):
-    sol_old = Y0
-
-    def rhs_fixed_point(y):
-        curv = compute_curvature(n, ds, y)
-        return rhs + rhs_bc - ei * D2 @ curv
-    
-    A = - tension * D2 + BC 
-    error = 10 
-    k = 1
-    while k < 3 and error > 1e-4:
-        sol_new = sp.sparse.linalg.spsolve(A, rhs_fixed_point(sol_old))
-        sol_old = sol_new
-        k += 1
-    
-    return sol_new
 
 
 def _solve_curvature_exact(
@@ -92,7 +75,6 @@ def _solve_curvature_exact(
 
         return D2 @ bending_moment  - tension * D2 @ y + BC @ y - rhs - rhs_bc
     
-    # sol = fixed_point_algo(n,ds,ei,tension,Y0,D2,BC,rhs,rhs_bc)
     sol = sp.optimize.root(equation, Y0)
 
     if not sol.success:

@@ -1,17 +1,7 @@
 from typing import Tuple, Optional
-import matplotlib.pyplot as plt
 
 import numpy as np
 import scipy as sp
-
-
-def plot_function(x, exact, sol):
-    """Function to plot the analytical and the numerical solution."""
-    plt.plot(x, exact, "--", color="blue", label="analytical")
-    plt.plot(x, sol, color="orange", label="numerical")
-    plt.legend()
-    plt.show()
-
 
 def first_derivative(n: int, ds: float) -> sp.sparse.spmatrix:
     """Centered scheme, the first and last line have to be completed with BC (order 2)."""
