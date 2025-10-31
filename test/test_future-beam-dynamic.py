@@ -6,8 +6,7 @@ from slenderpy.future.beam.dynamic import _solve_curvature_approx, _solve_curvat
 import slenderpy.future.beam.static as ST
 import slenderpy.future.beam.fd_utils as FD
 
-
-def test_dynamic_approx_curvature_static_BC():
+def test_dynamic_approx_curvature_static_BC_order2():
     nb_space = 200
     dt = 1/10000. 
     final_time = 10000
@@ -30,8 +29,54 @@ def test_dynamic_approx_curvature_static_BC():
         return -np.sin(t)*x**2*(x-lmax)**2
     
     def force(x,t):
-        # return -mass*np.cos(t)*x**2*(x-lmax)**2 + ei_max*24.*f(t) - tension*f(t)*(12*x**2 -12*lmax*x + 2*lmax**2)
         return -mass*np.cos(t)*x**2*(x-lmax)**2 - tension*f(t)*(12*x**2 -12*lmax*x + 2*lmax**2)
+    
+
+    left = [[1, 0, 0, 1], [0, 1, 0, 0]]
+    right = [[1, 0, 0, 1], [0, 1, 0, 0]]
+    bc_y = FD.BoundaryCondition(4, left, right)
+
+    left = [[1, 0, 0, 0], [0, 1, 0, 0]]
+    right = [[1, 0, 0, 0], [0, 1, 0, 0]]
+    bc_v = FD.BoundaryCondition(4, left, right)
+
+    sol = _solve_curvature_approx(nb_space = nb_space, dt = dt, bc_y = bc_y, bc_v = bc_v,
+                                lspan = lspan, final_time = final_time, mass = mass, tension = tension,
+                                ei_max = ei_max, force = force, initial_position = exact, initial_velocity = exact_time_derivative)
+
+    analitical_results = np.array([exact(x,i*dt) for i in range(final_time + 1)])
+
+    atol = 1.0e-06
+    rtol = 1.0e-04
+
+    assert np.allclose(analitical_results, sol, atol=atol, rtol=rtol)
+
+
+def test_dynamic_approx_curvature_static_BC():
+    nb_space = 200
+    dt = 1/10000. 
+    final_time = 20000
+    mass = 1.
+    tension = 1.
+    ei_max = 1.
+    lmin = 0. 
+    lmax = 3.
+    lspan = lmax - lmin 
+
+    x = np.linspace(lmin, lmax, nb_space)
+
+    def f(t):
+        return np.cos(t)
+
+    def exact(x,t):
+        return f(t)*x**2*(x-lmax)**2 + 1
+    
+    def exact_time_derivative(x,t):
+        return -np.sin(t)*x**2*(x-lmax)**2
+    
+    def force(x,t):
+        return -mass*np.cos(t)*x**2*(x-lmax)**2 + ei_max*24.*f(t) - tension*f(t)*(12*x**2 -12*lmax*x + 2*lmax**2)
+        # return -mass*np.cos(t)*x**2*(x-lmax)**2 - tension*f(t)*(12*x**2 -12*lmax*x + 2*lmax**2)
     
 
     left = [[1, 0, 0, 1], [0, 1, 0, 0]]
@@ -49,15 +94,15 @@ def test_dynamic_approx_curvature_static_BC():
                                 ei_max = ei_max, force = force, initial_position = exact, initial_velocity = exact_time_derivative)
     
 
-    t = 2000
+    t = 20000
     
-    # plt.plot(x,exact(x, t*dt),color = 'blue', label = 'Analytical solution') 
-    # plt.plot(x,exact_time_derivative(x,t*dt),color = 'green', label = 'Analytical time derivative solution')
-    # plt.plot(x,sol[t], color = 'orange', label = 'Approximate solution')
-    # plt.legend()
-    # plt.xlim(lmin, lmax)
-    # plt.ylim(-7,7)
-    # plt.show()
+    plt.plot(x,exact(x, t*dt),color = 'blue', label = 'Analytical solution') 
+    plt.plot(x,exact_time_derivative(x,t*dt),color = 'green', label = 'Analytical time derivative solution')
+    plt.plot(x,sol[t], color = 'orange', label = 'Approximate solution')
+    plt.legend()
+    plt.xlim(lmin, lmax)
+    plt.ylim(-7,7)
+    plt.show()
 
     # fig = plt.figure()
     # line_exact, = plt.plot([], [], color='blue', label = 'Analytical solution')
@@ -75,16 +120,16 @@ def test_dynamic_approx_curvature_static_BC():
     #     return line_exact
 
     # ani = animation.FuncAnimation(fig,animate,frames = np.arange(1,final_time,100), interval=1)
-    # ani.save("animation.mp4", writer="ffmpeg", fps=30)
+    # ani.save("approx_curvature.mp4", writer="ffmpeg", fps=30)
 
     # plt.show()
 
-    analitical_results = np.array([exact(x,i*dt) for i in range(final_time + 1)])
+    # analitical_results = np.array([exact(x,i*dt) for i in range(final_time + 1)])
 
-    atol = 1.0e-06
-    rtol = 1.0e-04
+    # atol = 1.0e-06
+    # rtol = 1.0e-04
 
-    assert np.allclose(analitical_results, sol, atol=atol, rtol=rtol)
+    # assert np.allclose(analitical_results, sol, atol=atol, rtol=rtol)
 
 
 
@@ -212,7 +257,6 @@ def test_dynamic_exact_curvature():
     
 
 if __name__ == "__main__":
-    # test_scheme_CN()
     test_dynamic_approx_curvature_static_BC()
     # test_dynamic_approx_curvature()
     # test_dynamic_exact_curvature()
