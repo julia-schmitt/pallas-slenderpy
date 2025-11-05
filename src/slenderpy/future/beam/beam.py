@@ -126,3 +126,73 @@ def _solve_static_exact_curvature(
         print(sol.message)
 
     return sol.x
+
+
+def _solve_dynamic_approx_curvature(
+    nb_space: int,
+    dt: float,
+    initial_time: int,
+    final_time: int,
+    bc: FD.BoundaryCondition,
+    beam: Beam,
+    initial_position: np.ndarray[float],
+    initial_velocity: np.ndarray[float],
+    force: callable,
+) -> np.ndarray[float]:
+    """Solve equation of the form : m*(d^2/dt^2)*y (d^2/dx^2)*M - tension*(d^2/dx^2)*y = rhs,
+    where M depends on the approximated curvature i.e. (d^2/dx^2)*y.
+    """
+
+    lspan = beam.length
+    ds = lspan / (nb_space - 1)
+    dt2 = dt*0.5
+    x = np.linspace(0.,lspan,nb_space)
+
+    y_old = initial_position
+    v_old = initial_velocity
+    y_all_time = [y_old]
+
+    D2 = FD.second_derivative(nb_space, ds)
+    D2 = FD.clean_matrix(bc.order, D2)
+    D4 = FD.fourth_derivative(nb_space , ds)
+    BC, rhs_bc = bc.compute(ds, nb_space)
+
+    Id = sp.sparse.identity(nb_space)
+    Id.data[0,0] = 0
+    Id.data[0,1] = 0
+    Id.data[0,-1] = 0
+    Id.data[0,-2] = 0
+
+    ei = beam.ei_max
+    H = beam.tension 
+    mass = beam.mass 
+
+    K = ei*D4 - H*D2
+    M = mass*Id
+    A = M + dt2**2*K  + BC
+    B = M - dt2**2*K
+
+    current_time = initial_time
+
+    for _ in range(final_time):
+        force_previsous = FD.clean_rhs(bc.order, force(x, current_time))
+        force_current = FD.clean_rhs(bc.order, force(x, current_time + dt))
+
+        rhs = B@v_old + dt2*(force_previsous + force_current) - dt*K@y_old  + rhs_bc
+
+        v_new = sp.sparse.linalg.spsolve(A,rhs)
+        y_new = y_old + dt2*(v_old + v_new)
+        y_new[0:2] = v_new[0:2]
+        y_new[-2:] = v_new[-2:]
+
+        current_time += dt
+
+        v_old = v_new
+        y_old = y_new
+
+        y_all_time.append(y_new) 
+  
+        if bc.dynamic_values is not None:
+            rhs_bc = bc.update_rhs(nb_space,x,current_time)
+
+    return np.array(y_all_time)
