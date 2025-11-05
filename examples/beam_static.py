@@ -1,7 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from slenderpy.future.beam.static import _solve_curvature_approx, _solve_curvature_exact
+from slenderpy.future.beam.beam import (
+    Beam,
+    _solve_static_approx_curvature,
+    _solve_static_exact_curvature,
+)
 import slenderpy.future.beam.fd_utils as FD
 
 
@@ -28,7 +32,8 @@ def curvature_approx_bending_const():
     right = [[1, 0, 0, 0], [0, 0, 1, 0]]
     bc = FD.BoundaryCondition(4, left, right)
     function = exact_solution(x)
-    sol = _solve_curvature_approx(n=n, bc=bc, lspan=1, tension=1, ei_max = 1, rhs=np.zeros(n))
+    beam = Beam(length=1, tension=1, ei_max=1)
+    sol = _solve_static_approx_curvature(n=n, bc=bc, beam=beam, rhs=np.zeros(n))
 
     plt.plot(x, function, "--", color="blue", label="analytical")
     plt.plot(x, sol, color="orange", label="FD solution")
@@ -52,17 +57,18 @@ def curvature_exact_bending_const():
 
     def exact_solution(x):
         return np.cosh(x)
-    
+
     def rhs(x):
-        return -2 / np.cosh(x)**2 + 6.0 * np.sinh(x)**2 / np.cosh(x) ** 4 - np.cosh(x)
+        return (
+            -2 / np.cosh(x) ** 2 + 6.0 * np.sinh(x) ** 2 / np.cosh(x) ** 4 - np.cosh(x)
+        )
 
     left = [[1, 0, 0, np.cosh(lmin)], [0, 1, 0, np.sinh(lmin)]]
     right = [[1, 0, 0, np.cosh(lmax)], [0, 1, 0, np.sinh(lmax)]]
     bc = FD.BoundaryCondition(4, left, right)
-    sol = _solve_curvature_exact(n=n, bc=bc, lspan=lspan, tension=1, ei_max = 1, rhs=rhs(x))
-    approx_curvature = _solve_curvature_approx(
-        n=n, bc=bc, lspan=lspan, tension=1, ei_max = 1, rhs=rhs(x)
-    )
+    beam = Beam(length=lspan, tension=1, ei_max=1)
+    approx_curvature = _solve_static_approx_curvature(n=n, bc=bc, beam=beam, rhs=rhs(x))
+    sol = _solve_static_exact_curvature(n=n, bc=bc, beam=beam, rhs=rhs(x))
     function = exact_solution(x)
 
     plt.plot(x, function, "--", color="blue", label="analytical")

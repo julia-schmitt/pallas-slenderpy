@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 
 import slenderpy.future.beam.fd_utils as FD
 
+
 def _plot(x, exact, sol):
     """Function to plot the analytical and the numerical solution."""
     plt.plot(x, exact, "--", color="blue", label="analytical")
@@ -39,7 +40,7 @@ def test_first_derivative(plot=False):
     def exact(x):
         return -np.cos(x) + 3 + np.cos(-1)
 
-    if plot :
+    if plot:
         _plot(x, exact(x), sol)
 
     atol = 1.0e-06
@@ -76,7 +77,7 @@ def test_second_derivative(plot=False):
     def exact(x):
         return 2 * x + 1
 
-    if plot :
+    if plot:
         _plot(x, exact(x), sol)
 
     atol = 1.0e-06
@@ -109,7 +110,7 @@ def test_boundary_condition_order2(plot=False):
     def exact(x):
         return 2 * x + 1
 
-    if plot :
+    if plot:
         _plot(x, exact(x), sol)
 
     atol = 1.0e-06
@@ -154,7 +155,7 @@ def test_fourth_derivative(plot=False):
     def exact(x):
         return x**3 - x**2 + x
 
-    if plot :
+    if plot:
         _plot(x, exact(x), sol)
 
     atol = 1.0e-06
@@ -190,7 +191,7 @@ def test_boundary_condition_order4(plot=False):
     def exact(x):
         return x**3 - x**2 + x
 
-    if plot :
+    if plot:
         _plot(x, exact(x), sol)
 
     atol = 1.0e-04

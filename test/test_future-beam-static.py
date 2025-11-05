@@ -1,8 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-import slenderpy.future.beam.static as ST
+import slenderpy.future.beam.beam as Beam
 from slenderpy.future.beam.fd_utils import BoundaryCondition
+
 
 def _plot(x, exact, sol):
     """Function to plot the analytical and the numerical solution."""
@@ -28,7 +29,8 @@ def test_solve_cruvature_approx_order2(plot=False):
     right = [[-1, 0, 1, 4]]
     order = 2
     bc = BoundaryCondition(order, left, right)
-    sol = ST._solve_curvature_approx(n=n, bc=bc, lspan=1, tension=-1, ei_max = 0, rhs=x)
+    beam = Beam.Beam(length=1, tension=-1, ei_max=0)
+    sol = Beam._solve_static_approx_curvature(n=n, bc=bc, beam=beam, rhs=x)
 
     def exact(x):
         A = -1 / 12
@@ -62,7 +64,8 @@ def test_solve_cruvature_approx_order4(plot=False):
     right = [[1, 0, 0, 0], [0, 0, 1, 0]]
     bc = BoundaryCondition(4, left, right)
     rhs = np.zeros(n)
-    sol = ST._solve_curvature_approx(n=n, bc=bc, lspan=1, tension=1, ei_max=1, rhs=rhs)
+    beam = Beam.Beam(length=1, tension=1, ei_max=1)
+    sol = Beam._solve_static_approx_curvature(n=n, bc=bc, beam=beam, rhs=rhs)
 
     def exact(x):
         A = -1 / (np.exp(1) ** 2 - 1)
@@ -88,21 +91,23 @@ def test_curvature(plot=False):
     lmax = 1.0
     lspan = lmax - lmin
     x = np.linspace(lmin, lmax, n)
-    ds = lspan / n 
+    ds = lspan / n
 
     def curvature_cosh(x):
-        return 1/np.cosh(x)**2
-    
-    numerical_curvature = ST.compute_curvature(n,ds,np.cosh(x))
+        return 1 / np.cosh(x) ** 2
+
+    numerical_curvature = Beam.compute_curvature(n, ds, np.cosh(x))
     exact_curvature = curvature_cosh(x)
 
-    if plot :
-        _plot(x[1:-1],exact_curvature[1:-1], numerical_curvature[1:-1])
+    if plot:
+        _plot(x[1:-1], exact_curvature[1:-1], numerical_curvature[1:-1])
 
     atol = 1.0e-09
     rtol = 1.0e-03
 
-    assert np.allclose(exact_curvature[1:-1], numerical_curvature[1:-1], atol=atol, rtol=rtol)
+    assert np.allclose(
+        exact_curvature[1:-1], numerical_curvature[1:-1], atol=atol, rtol=rtol
+    )
 
 
 def test_solve_curvature_exact(plot=False):
@@ -121,16 +126,16 @@ def test_solve_curvature_exact(plot=False):
     x = np.linspace(lmin, lmax, n)
 
     def rhs(x):
-        return (
-            8.3 * (-24.0 * (1 + 4 * x**2) ** (-5.0 / 2)
-            + 480 * x**2 * (1 + 4 * x**2) ** (-7.0 / 2))
-            - 2 * (-5)
-        )
+        return 8.3 * (
+            -24.0 * (1 + 4 * x**2) ** (-5.0 / 2)
+            + 480 * x**2 * (1 + 4 * x**2) ** (-7.0 / 2)
+        ) - 2 * (-5)
 
     left = [[1, 0, 0, lmin**2], [0, 1, 0, 2 * lmin]]
     right = [[1, 0, 0, lmax**2], [0, 1, 0, 2 * lmax]]
     bc = BoundaryCondition(4, left, right)
-    sol = ST._solve_curvature_exact(n=n, bc=bc, lspan=lspan, tension=-5, ei_max = 8.3, rhs=rhs(x))
+    beam = Beam.Beam(length=lspan, tension=-5, ei_max=8.3)
+    sol = Beam._solve_static_exact_curvature(n=n, bc=bc, beam=beam, rhs=rhs(x))
 
     def exact(x):
         return x**2
@@ -144,7 +149,66 @@ def test_solve_curvature_exact(plot=False):
     assert np.allclose(exact(x), sol, atol=atol, rtol=rtol)
 
 
-def test_solve_curvature_exact_bendin_moment_variable(plot=False):
+def test_solve_curvature_approx_bending_moment_variable(plot=False):
+    n = 1000
+    lmin = -1.0
+    lmax = 3.0
+    lspan = lmax - lmin
+    x = np.linspace(lmin, lmax, n)
+
+    ei_min = 18.23
+    ei_max = 589.64
+    critical_curvature = 25.8
+    chi_bar = (1 - ei_min / ei_max) * critical_curvature
+    H = 1485.24
+
+    def curvature(x):
+        return -np.sin(x)
+
+    def curvature_first_derivative(x):
+        return -np.cos(x)
+
+    def curvature_second_derivative(x):
+        return np.sin(x)
+
+    def rhs(x):
+        C = curvature(x)
+        C1 = curvature_first_derivative(x)
+        C2 = curvature_second_derivative(x)
+        E = np.exp(-C / chi_bar)
+        return (
+            ei_min * C2 * (1 - E)
+            + 2 * ei_min * C1**2 * E / chi_bar
+            + (ei_max * chi_bar + ei_min * C)
+            * (C2 * E / chi_bar - C1**2 * E / chi_bar**2)
+            - H * curvature(x)
+        )
+
+    def exact(x):
+        return np.sin(x)
+
+    left = [[1, 0, 0, exact(lmin)], [0, 1, 0, np.cos(lmin)]]
+    right = [[1, 0, 0, exact(lmax)], [0, 1, 0, np.cos(lmax)]]
+    bc = BoundaryCondition(4, left, right)
+    beam = Beam.Beam(
+        length=lspan,
+        tension=H,
+        ei_max=ei_max,
+        ei_min=ei_min,
+        critical_curvature=critical_curvature,
+    )
+    sol = Beam._solve_static_approx_curvature(n=n, bc=bc, beam=beam, rhs=rhs(x))
+
+    if plot:
+        _plot(x, exact(x), sol)
+
+    atol = 1.0e-03
+    rtol = 1.0e-09
+
+    assert np.allclose(exact(x), sol, atol=atol, rtol=rtol)
+
+
+def test_solve_curvature_exact_bending_moment_variable(plot=False):
     n = 1000
     lmin = -1.0
     lmax = 3.0
@@ -154,34 +218,45 @@ def test_solve_curvature_exact_bendin_moment_variable(plot=False):
     ei_min = 253.2
     ei_max = 1234.9
     critical_curvature = 12.4
-    chi_bar = (1 - ei_min/ei_max)*critical_curvature
+    chi_bar = (1 - ei_min / ei_max) * critical_curvature
     H = 3.2
 
     def curvature(x):
-        return 1./np.cosh(x)**2
-    
+        return 1.0 / np.cosh(x) ** 2
+
     def curvature_first_derivative(x):
-        return -2*np.sinh(x)/np.cosh(x)**3
-    
+        return -2 * np.sinh(x) / np.cosh(x) ** 3
+
     def curvature_second_derivative(x):
-        return -2 / np.cosh(x)**2 + 6.0 * np.sinh(x)**2 / np.cosh(x) ** 4
-    
+        return -2 / np.cosh(x) ** 2 + 6.0 * np.sinh(x) ** 2 / np.cosh(x) ** 4
+
     def rhs(x):
         C = curvature(x)
         C1 = curvature_first_derivative(x)
         C2 = curvature_second_derivative(x)
-        E = np.exp(-C/chi_bar)
-        return ei_min*C2*(1-E) + 2*ei_min*C1**2*E/chi_bar \
-                + (ei_max*chi_bar + ei_min*C) * (C2*E/chi_bar - C1**2*E/chi_bar**2) \
-                - H*np.cosh(x)
-    
+        E = np.exp(-C / chi_bar)
+        return (
+            ei_min * C2 * (1 - E)
+            + 2 * ei_min * C1**2 * E / chi_bar
+            + (ei_max * chi_bar + ei_min * C)
+            * (C2 * E / chi_bar - C1**2 * E / chi_bar**2)
+            - H * np.cosh(x)
+        )
+
     def exact(x):
         return np.cosh(x)
-    
+
     left = [[1, 0, 0, np.cosh(lmin)], [0, 1, 0, np.sinh(lmin)]]
     right = [[1, 0, 0, np.cosh(lmax)], [0, 1, 0, np.sinh(lmax)]]
     bc = BoundaryCondition(4, left, right)
-    sol = ST._solve_curvature_exact(n=n, bc=bc, lspan=lspan, tension=H, ei_max = ei_max, ei_min = ei_min, critical_curvature = critical_curvature, rhs=rhs(x))
+    beam = Beam.Beam(
+        length=lspan,
+        tension=H,
+        ei_max=ei_max,
+        ei_min=ei_min,
+        critical_curvature=critical_curvature,
+    )
+    sol = Beam._solve_static_exact_curvature(n=n, bc=bc, beam=beam, rhs=rhs(x))
 
     if plot:
         _plot(x, exact(x), sol)
@@ -190,4 +265,3 @@ def test_solve_curvature_exact_bendin_moment_variable(plot=False):
     rtol = 1.0e-03
 
     assert np.allclose(exact(x), sol, atol=atol, rtol=rtol)
-

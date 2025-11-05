@@ -3,6 +3,7 @@ from typing import Tuple, Optional
 import numpy as np
 import scipy as sp
 
+
 def first_derivative(n: int, ds: float) -> sp.sparse.spmatrix:
     """Centered scheme, the first and last line have to be completed with BC (order 2)."""
 
@@ -54,23 +55,27 @@ def fourth_derivative(n: int, ds: float) -> sp.sparse.spmatrix:
     return res
 
 
-def clean_matrix(order: int, A2: sp.sparse.spmatrix) -> sp.sparse.spmatrix:
-    """Earase the proper coefficient in the scheme matrix to take into account the bounday conditions."""
+def clean_matrix(order: int, A: sp.sparse.spmatrix) -> sp.sparse.spmatrix:
+    """Earase the proper coefficient in the scheme matrix to take into account the boundary conditions."""
     if order == 4:
-        A2.data[0, 0] = 0
-        A2.data[0, -3] = 0
+        A = sp.sparse.csr_matrix.copy(A)
 
-        A2.data[1, 1] = 0
-        A2.data[1, -2] = 0
+        A.data[0, 0] = 0
+        A.data[0, -3] = 0
 
-        A2.data[2, -1] = 0
-        A2.data[2, 2] = 0
+        A.data[1, 1] = 0
+        A.data[1, -2] = 0
 
-    return A2
+        A.data[2, -1] = 0
+        A.data[2, 2] = 0
+
+    return A
 
 
 def clean_rhs(order: int, rhs: Optional[np.ndarray[float]] = None) -> np.ndarray[float]:
-    """Earase the proper coefficient in the right hand-side to take into account the bounday conditions."""
+    """Earase the proper coefficient in the right hand-side to take into account the boundary conditions."""
+    rhs = np.copy(rhs)
+
     rhs[0] = 0
     rhs[-1] = 0
 
