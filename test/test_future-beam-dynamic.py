@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import numpy as np
 
-from slenderpy.future.beam.dynamic import _solve_curvature_approx, _solve_curvature_exact
+from slenderpy.future.beam.dynamic import _solve_curvature_approx, _solve_curvature_exact, _solve_curvature_approx_v2
 import slenderpy.future.beam.static as ST
 import slenderpy.future.beam.fd_utils as FD
 
@@ -53,12 +53,12 @@ def test_dynamic_approx_curvature_static_BC_order2():
 
 
 def test_dynamic_approx_curvature_static_BC():
-    nb_space = 200
+    nb_space = 100
     dt = 1/10000. 
-    final_time = 20000
+    final_time = 100000
     mass = 1.
     tension = 1.
-    ei_max = 1.
+    ei_max = 0.
     lmin = 0. 
     lmax = 3.
     lspan = lmax - lmin 
@@ -87,42 +87,45 @@ def test_dynamic_approx_curvature_static_BC():
     right = [[1, 0, 0, 0], [0, 1, 0, 0]]
     bc_v = FD.BoundaryCondition(4, left, right)
 
-    # sol = solve_CN(nb_space = nb_space,dt = dt, lspan = lspan, final_time = final_time, force = force, initial_position = exact, initial_velocity = exact_time_derivative)
 
-    sol = _solve_curvature_approx(nb_space = nb_space, dt = dt, bc_y = bc_y, bc_v = bc_v,
+    # sol = _solve_curvature_approx(nb_space = nb_space, dt = dt, bc_y = bc_y, bc_v = bc_v,
+    #                             lspan = lspan, final_time = final_time, mass = mass, tension = tension,
+    #                             ei_max = ei_max, force = force, initial_position = exact, initial_velocity = exact_time_derivative)
+    
+    sol = _solve_curvature_approx_v2(nb_space = nb_space, dt = dt, bc_y = bc_y, bc_v = bc_v,
                                 lspan = lspan, final_time = final_time, mass = mass, tension = tension,
                                 ei_max = ei_max, force = force, initial_position = exact, initial_velocity = exact_time_derivative)
     
-
-    t = 20000
+    # t = 5000
     
-    plt.plot(x,exact(x, t*dt),color = 'blue', label = 'Analytical solution') 
-    plt.plot(x,exact_time_derivative(x,t*dt),color = 'green', label = 'Analytical time derivative solution')
-    plt.plot(x,sol[t], color = 'orange', label = 'Approximate solution')
-    plt.legend()
-    plt.xlim(lmin, lmax)
-    plt.ylim(-7,7)
-    plt.show()
-
-    # fig = plt.figure()
-    # line_exact, = plt.plot([], [], color='blue', label = 'Analytical solution')
-    # line_approx, = plt.plot([], [], color='orange', label = 'Approximate solution')
+    # plt.plot(x,exact(x,2000+t*dt),color = 'blue', label = 'exact y') 
+    # plt.plot(x,exact_time_derivative(x,2000+t*dt),color = 'green', label = 'exact v')
+    # # plt.plot(x,sol[t], color = 'orange', label = 'approximated v')
+    # plt.plot(x,sol_v2[t], color = 'red', label = 'approximated v, v2')
     # plt.legend()
     # plt.xlim(lmin, lmax)
     # plt.ylim(-7,7)
-
-    # def animate(i):
-    #     t = i*dt
-    #     analytical = exact(x,t)
-    #     approx = sol[i]
-    #     line_exact.set_data(x, analytical)
-    #     line_approx.set_data(x,approx)
-    #     return line_exact
-
-    # ani = animation.FuncAnimation(fig,animate,frames = np.arange(1,final_time,100), interval=1)
-    # ani.save("approx_curvature.mp4", writer="ffmpeg", fps=30)
-
     # plt.show()
+
+    fig = plt.figure()
+    line_exact, = plt.plot([], [], color='blue', label = 'Analytical solution')
+    line_approx, = plt.plot([], [], color='orange', label = 'Approximate solution')
+    plt.legend()
+    plt.xlim(lmin, lmax)
+    plt.ylim(-7,7)
+
+    def animate(i):
+        t = i*dt
+        analytical = exact(x,t)
+        approx = sol[i]
+        line_exact.set_data(x, analytical)
+        line_approx.set_data(x,approx)
+        return line_exact
+
+    ani = animation.FuncAnimation(fig,animate,frames = np.arange(1,final_time,100), interval=1)
+    ani.save("approx_curvature.mp4", writer="ffmpeg", fps=30)
+
+    plt.show()
 
     # analitical_results = np.array([exact(x,i*dt) for i in range(final_time + 1)])
 
@@ -136,13 +139,12 @@ def test_dynamic_approx_curvature_static_BC():
 
 
 def test_dynamic_approx_curvature():
-    nb_space = 1000
-    nb_time = 100
-    final_time = 10.
-    dt = final_time/nb_time
+    nb_space = 500
+    dt = 1/10000. 
+    final_time = 100
     mass = 1.
     tension = 1.
-    ei_max = 1.
+    ei_max = 0.
     lmin = 0. 
     lmax = 8.
     lspan = lmax - lmin 
@@ -164,19 +166,26 @@ def test_dynamic_approx_curvature():
 
     def force(x,t):
         return -mass*4.*np.pi**2*exact(x,t) + ei_max*exact(x,t) + tension*exact(x,t) 
-
-    left = [[1, 0, 0, exact_time_derivative(lmin, dt)], [0, 1, 0, exact_time_derivative(lmin, dt)]]
-    right = [[1, 0, 0, exact_space_time_derivative(lmax, dt)], [0, 1, 0, exact_space_time_derivative(lmax, dt)]]
+    
+    t = 0
+    
+    left = [[1, 0, 0, exact(lmin, t)], [0, 1, 0, exact_time_derivative(lmin, t)]]
+    right = [[1, 0, 0, exact(lmax, t)], [0, 1, 0, exact_time_derivative(lmax, t)]]
     bc_y = FD.BoundaryCondition(4, left, right)
 
-    sol = _solve_curvature_approx(nb_space = nb_space, nb_time = nb_time, bc_y = bc_y, bc_v = bc_y,
-                                lspan = lspan, final_time = final_time, tension = tension,
-                                ei_max = ei_max, force = force, inital_position = exact, initial_velocity = exact_time_derivative)
+    left = [[1, 0, 0, exact_time_derivative(lmin, t)], [0, 1, 0, exact_space_time_derivative(lmin, t)]]
+    right = [[1, 0, 0, exact_time_derivative(lmax, t)], [0, 1, 0, exact_space_time_derivative(lmax, t)]]
+    bc_v = FD.BoundaryCondition(4, left, right)
+
+    sol = _solve_curvature_approx_v2(nb_space = nb_space, dt = dt, bc_y = bc_y, bc_v = bc_v,
+                                lspan = lspan, final_time = final_time, mass = mass, tension = tension,
+                                ei_max = ei_max, force = force, initial_position = exact, initial_velocity = exact_time_derivative)
     
 
-    plt.plot(x,exact(x,1*dt),color = 'blue', label = 'Analytical solution')
-    # plt.plot(x,exact_time_derivative(x,1*dt),color = 'green', label = 'Analytical time derivative solution')
-    plt.plot(x,sol[1], color = 'orange', label = 'Approximate solution')
+    t = 100
+    plt.plot(x,exact(x,t*dt),color = 'blue', label = 'Analytical solution')
+    plt.plot(x,exact_time_derivative(x,t*dt),color = 'green', label = 'Analytical time derivative solution')
+    plt.plot(x,sol[t], color = 'orange', label = 'Approximate solution')
     plt.legend()
     plt.show()
 
@@ -189,13 +198,14 @@ def test_dynamic_approx_curvature():
 
     # def animate(i):
     #     t = i*dt
-    #     analytical = exact(x,t + dt)
+    #     analytical = exact(x,t)
     #     approx = sol[i]
     #     line_exact.set_data(x, analytical)
     #     line_approx.set_data(x,approx)
     #     return line_exact
 
-    # ani = animation.FuncAnimation(fig,animate,frames = 1000,interval=1)
+    # ani = animation.FuncAnimation(fig,animate,frames = np.arange(1,final_time,100), interval=1)
+    # # ani.save("approx_curvature.mp4", writer="ffmpeg", fps=30)
 
     # plt.show()
 
@@ -258,5 +268,6 @@ def test_dynamic_exact_curvature():
 
 if __name__ == "__main__":
     test_dynamic_approx_curvature_static_BC()
+    # test_dynamic_approx_curvature()
     # test_dynamic_approx_curvature()
     # test_dynamic_exact_curvature()

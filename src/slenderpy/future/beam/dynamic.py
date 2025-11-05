@@ -14,7 +14,7 @@ def _solve_curvature_approx(
     bc_v: FD.BoundaryCondition,
     lspan: float = 400.0,
     final_time : float = 30.0,
-    mass : float = 10., #tout diviser par la masse 
+    mass : float = 10., 
     tension: float = 1.853e04,
     ei_max: float = 2155.0,
     ei_min: float = None,
@@ -40,42 +40,105 @@ def _solve_curvature_approx(
     ei = ei_max
 
     D2 = FD.second_derivative(nb_space, ds)
-    # D2 = FD.clean_matrix(bc_v.order, D2)
+    D2 = FD.clean_matrix(bc_v.order, D2)
     D4 = FD.fourth_derivative(nb_space , ds)
-    # BC, rhs_bc = bc_v.compute(ds, nb_space)
-    # BC, rhs_bc = bc_y.compute(ds, nb_space)
+    BC, rhs_bc = bc_v.compute(ds, nb_space)
 
     Id = sp.sparse.identity(nb_space)
-    # Id.data[0,0] = 0
-    # Id.data[0,1] = 0
-    # Id.data[0,-1] = 0
-    # Id.data[0,-2] = 0
+    Id.data[0,0] = 0
+    Id.data[0,1] = 0
+    Id.data[0,-1] = 0
+    Id.data[0,-2] = 0
 
     K = ei*D4 - tension*D2
     M = mass*Id
+    A = M + dt2**2*K  + BC
+    B = M - dt2**2*K
 
     for _ in range(final_time):
-        # force_previsous = FD.clean_rhs(bc_v.order, np.copy(force(x, t)))
-        # force_current = FD.clean_rhs(bc_v.order, np.copy(force(x, t + dt)))
-        # v_old = FD.clean_rhs(bc_v.order, np.copy(v_old))
-        # y_old = FD.clean_rhs(bc_y.order, np.copy(y_old))
+        force_previsous = FD.clean_rhs(bc_v.order, np.copy(force(x, t)))
+        force_current = FD.clean_rhs(bc_v.order, np.copy(force(x, t + dt)))
 
-        rhs = (M - dt2**2*K)@v_old + dt2*(force(x,t) + force(x,t + dt)) - dt*K@y_old  #+ rhs_bc
-        A =  M + dt2**2*K  #+ BC
+        rhs = B@v_old + dt2*(force_previsous + force_current) - dt*K@y_old  + rhs_bc
 
         v_new = sp.sparse.linalg.spsolve(A,rhs)
-        v_new[0] = 0
-        v_new[-1] = 0
-        # v_new = v_old + dt2*(force_previsous + force_current - K@y_old - K@y_new)/mass
-
-        # v_new[0:2] = np.array([0,0])
-        # v_new[-2::] = np.array([0,0])
-
         y_new = y_old + dt2*(v_old + v_new)
-        y_new[0] = 1
-        y_new[-1] = 1
-        # y_new[0:2] = np.array([1,1])
-        # y_new[-2::] = np.array([1,1])
+
+        v_old = v_new
+        y_old = y_new
+        t += dt
+
+        y_all_time.append(y_new)    
+
+        rhs_bc[0] = initial_velocity(x[0],t)
+        rhs_bc[1] = 2*np.pi*np.cos(2*np.pi*t - x[1])
+        rhs_bc[-1] = initial_velocity(x[-1],t)
+        rhs_bc[-2] = 2*np.pi*np.cos(2*np.pi*t - x[-2])
+
+    return np.array(y_all_time)
+
+
+def _solve_curvature_approx_v2(
+    nb_space: int,
+    dt: float,
+    bc_y: FD.BoundaryCondition,
+    bc_v: FD.BoundaryCondition,
+    lspan: float = 400.0,
+    final_time : float = 30.0,
+    mass : float = 10., 
+    tension: float = 1.853e04,
+    ei_max: float = 2155.0,
+    ei_min: float = None,
+    critical_curvature = None, 
+    force = None, #a modifier 
+    initial_position = None,
+    initial_velocity = None
+) -> sp.sparse.spmatrix:
+#ajouter l'option de commencer à n'importe quel temps initial 
+    """Solve equation of the form : m*(d^2/dt^2)*y + ei*(d^4/dx^4)*y - tension*(d^2/dx^2)*y = rhs."""
+
+    ds = lspan / (nb_space - 1)
+    dt2 = dt*0.5
+    x = np.linspace(0.,lspan,nb_space)
+
+    # print("rapport = ", dt/ds**2)
+
+    t = 0.
+    y_old = initial_position(x,t)
+    v_old = initial_velocity(x,t)
+    y_all_time = [y_old]
+
+    ei = ei_max
+
+    D2 = FD.second_derivative(nb_space, ds)
+    D2 = FD.clean_matrix(bc_v.order, D2)
+    D4 = FD.fourth_derivative(nb_space , ds)
+    BC, rhs_bc = bc_y.compute(ds, nb_space)
+
+    Id = sp.sparse.identity(nb_space)
+    Id.data[0,0] = 0
+    Id.data[0,1] = 0
+    Id.data[0,-1] = 0
+    Id.data[0,-2] = 0
+
+    K = ei*D4 - tension*D2
+    M = mass*Id
+    A = M + dt2**2*K  + BC
+    B = M - dt2**2*K
+
+    for _ in range(final_time):
+        force_previsous = FD.clean_rhs(bc_y.order, np.copy(force(x, t)))
+        force_current = FD.clean_rhs(bc_y.order, np.copy(force(x, t + dt)))
+
+        rhs = B@y_old + dt2**2*(force_previsous + force_current) + dt*M@v_old  + rhs_bc
+
+        y_new = sp.sparse.linalg.spsolve(A,rhs)
+        v_new = v_old + dt2*(force_previsous + force_current - K@(y_old + y_new))/mass
+
+        # v_new[0] = initial_velocity(x[0],t)
+        # v_new[1] = initial_velocity(x[1],t)
+        # v_new[-1] = initial_velocity(x[-1],t)
+        # v_new[-2] = initial_velocity(x[-2],t)
 
         v_old = v_new
         y_old = y_new
