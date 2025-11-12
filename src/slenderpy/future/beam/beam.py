@@ -41,8 +41,8 @@ def _solve_static_approx_curvature(
     ei = beam.ei_max
     H = beam.tension
 
-    D2_order = FD.second_derivative(n, ds)
-    D2 = FD.clean_matrix(bc.order, D2_order)
+    D2_border = FD.second_derivative(n, ds)
+    D2 = FD.clean_matrix(bc.order, D2_border)
     BC, rhs_bc = bc.compute(ds, n)
     D4 = FD.fourth_derivative(n, ds)
     K = ei * D4 - H * D2
@@ -56,8 +56,8 @@ def _solve_static_approx_curvature(
     if beam.critical_curvature is not None:
 
         def equation(y):
-            curvature = D2_order @ y
-            bending_moment = compute_bending_moment(
+            curvature = D2_border @ y
+            bending_moment = compute_static_bending_moment(
                 curvature, beam.ei_max, beam.ei_min, beam.critical_curvature
             )
             return D2 @ bending_moment - beam.tension * D2 @ y + BC @ y - rhs_tot
@@ -79,13 +79,13 @@ def compute_curvature(n: int, ds: float, y: np.ndarray[float]) -> np.ndarray[flo
     return y_second * (np.ones(n) + y_first**2) ** (-3 / 2.0)
 
 
-def compute_bending_moment(
+def compute_static_bending_moment(
     curvature: np.ndarray[float],
     ei_max: float,
     ei_min: float,
     critical_curvature: float,
 ) -> np.ndarray[float]:
-    """Compute the bending moment if not constant, otherwise return ei_max."""
+    """Compute the bending moment in static if not constant, otherwise return ei_max."""
     if critical_curvature is None:
         return ei_max * curvature
 
@@ -114,7 +114,7 @@ def _solve_static_exact_curvature(
 
     def equation(y):
         curvature = compute_curvature(n, ds, y)
-        bending_moment = compute_bending_moment(
+        bending_moment = compute_static_bending_moment(
             curvature, beam.ei_max, beam.ei_min, beam.critical_curvature
         )
 
@@ -128,9 +128,24 @@ def _solve_static_exact_curvature(
     return sol.x
 
 
+def compute_bending_moment(
+            curvature: np.ndarray[float],
+    ei_max: float,
+    ei_min: float,
+    critical_curvature: float,
+    eta: np.ndarray[float] = None,
+) -> np.ndarray[float]:
+    """Compute the bending moment if not constant, otherwise return ei_max."""
+    if critical_curvature is None:
+        return ei_max * curvature
+
+    else:
+        return ei_min*curvature + (ei_max - ei_min)*critical_curvature*eta
+
+
 def _solve_dynamic_approx_curvature(
     nb_space: int,
-    dt: float,
+    nb_time: float,
     initial_time: int,
     final_time: int,
     bc: FD.BoundaryCondition,
@@ -142,9 +157,9 @@ def _solve_dynamic_approx_curvature(
     """Solve equation of the form : m*(d^2/dt^2)*y (d^2/dx^2)*M - tension*(d^2/dx^2)*y = rhs,
     where M depends on the approximated curvature i.e. (d^2/dx^2)*y.
     """
-
     lspan = beam.length
     ds = lspan / (nb_space - 1)
+    dt = final_time / nb_time
     dt2 = dt*0.5
     x = np.linspace(0.,lspan,nb_space)
 
@@ -172,11 +187,11 @@ def _solve_dynamic_approx_curvature(
     A = M + dt2**2*K  + BC
     B = M - dt2**2*K
 
-    current_time = initial_time
+    current_time = initial_time + dt 
 
-    for _ in range(final_time):
-        force_previsous = FD.clean_rhs(bc.order, force(x, current_time))
-        force_current = FD.clean_rhs(bc.order, force(x, current_time + dt))
+    for _ in range(nb_time):
+        force_previsous = FD.clean_rhs(bc.order, force(x, current_time - dt))
+        force_current = FD.clean_rhs(bc.order, force(x, current_time))
 
         rhs = B@v_old + dt2*(force_previsous + force_current) - dt*K@y_old  + rhs_bc
 
@@ -194,5 +209,86 @@ def _solve_dynamic_approx_curvature(
   
         if bc.dynamic_values is not None:
             rhs_bc = bc.update_rhs(nb_space,x,current_time)
+
+    return np.array(y_all_time)
+
+
+def _solve_dynamic_exact_curvature(
+    nb_space: int,
+    nb_time: int,
+    initial_time: int,
+    final_time: int,
+    bc: FD.BoundaryCondition,
+    beam: Beam,
+    initial_position: np.ndarray[float],
+    initial_velocity: np.ndarray[float],
+    force: callable,
+) -> np.ndarray[float]:
+    """Solve equation of the form : m*(d^2/dt^2)*y (d^2/dx^2)*M - tension*(d^2/dx^2)*y = rhs,
+    where M depends on the approximated curvature i.e. (d^2/dx^2)*y.
+    """
+    lspan = beam.length
+    ds = lspan / (nb_space - 1)
+    dt = final_time / nb_time
+    dt2 = dt*0.5
+    x = np.linspace(0.,lspan,nb_space)
+
+    print("rapport = ", dt/ds**2)
+
+    y_old = initial_position
+    v_old = initial_velocity
+    y_all_time = [y_old]
+
+    D2 = FD.second_derivative(nb_space, ds)
+    D2 = FD.clean_matrix(bc.order, D2)
+    BC, rhs_bc = bc.compute(ds, nb_space)
+
+    Id = sp.sparse.identity(nb_space)
+    Id.data[0,0] = 0
+    Id.data[0,1] = 0
+    Id.data[0,-1] = 0
+    Id.data[0,-2] = 0
+
+    H = beam.tension 
+    mass = beam.mass 
+
+    K = - H*D2
+    M = mass*Id
+    A = M + dt2**2*K + BC
+    B = M - dt2**2*K
+
+    current_time = initial_time + dt
+
+    for _ in range(nb_time):
+
+        if bc.dynamic_values is not None:
+            rhs_bc = bc.update_rhs(nb_space,x,current_time)
+    
+        force_previsous = FD.clean_rhs(bc.order, force(x, current_time - dt))
+        force_current = FD.clean_rhs(bc.order, force(x, current_time))
+
+        curvature_old = compute_curvature(nb_space,ds,y_old)
+        bending_moment_old = compute_bending_moment(curvature_old, beam.ei_max, beam.ei_min, beam.critical_curvature)  
+
+        y_picard = y_old
+
+        for _ in range(5):
+            curvature_picard = compute_curvature(nb_space,ds,y_picard)
+            bending_moment_picard = compute_bending_moment(curvature_picard, beam.ei_max, beam.ei_min, beam.critical_curvature)
+            rhs = B@v_old + dt2*(force_previsous + force_current) - dt2*D2@(bending_moment_old + bending_moment_picard) - dt*K@y_old  + rhs_bc
+            v_new = sp.sparse.linalg.spsolve(A,rhs)
+            y_new = y_old + dt2*(v_old + v_new)  
+
+            y_new[0:2] = v_new[0:2]
+            y_new[-2:] = v_new[-2:]   
+
+            y_picard = y_new   
+
+        v_old = v_new
+        y_old = y_new 
+        
+        current_time += dt
+
+        y_all_time.append(y_new) 
 
     return np.array(y_all_time)
