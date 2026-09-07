@@ -289,7 +289,8 @@ def solve_dynamic(
                 """State and step residual reached by a candidate velocity."""
                 y = y_old + dt2 * (v_old + v)
                 chi = chi_operator.value(y)
-                eta = law.update_eta(eta_old, chi - chi_old)
+                dchi = dt * chi_operator.jacobian(y) @ v
+                eta = law.update_eta(eta_old, dchi)
                 remainder = D2 @ law.dynamic_moment(chi, eta) - ei_D4 @ y
                 return y, chi, eta, A @ v - rhs + dt2 * (remainder_old + remainder)
 
@@ -300,9 +301,10 @@ def solve_dynamic(
 
             while n_iter < max_iter and error > threshold:
                 # tangent bending stiffness of the law over the step
-                tangent = law.dynamic_tangent(eta_new, chi_new - chi_old)
+                dchi_new = dt * chi_operator.jacobian(y_new) @ v_new
+                tangent = law.dynamic_tangent(eta_new, dchi_new)
 
-                jacobian = jacobian_base + dt2**2 * fdu.product_band(
+                jacobian = jacobian_base + 2 * dt2**2 * fdu.product_band(
                     left_rows, right_rows(y_new), tangent
                 )
                 try:
