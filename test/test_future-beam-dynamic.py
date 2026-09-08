@@ -8,6 +8,7 @@ conservation, hysteresis bounds, output layout).
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
+import pytest
 
 from slenderpy.future import simulation
 from slenderpy.future._constant import _GRAVITY
@@ -751,6 +752,46 @@ def test_hysteresis_loop_stays_within_the_static_envelope():
 
     # and the reached moments stay at or below the static envelope
     assert np.all(np.abs(mom) <= np.abs(law.moment(curv)) + law.plateau)
+
+
+@pytest.mark.parametrize("approx_curvature", [True, False])
+def test_hysteresis_lives_at_the_clamped_ends(approx_curvature):
+    """Cyclic loading of the varying model: eta moves at the end nodes too.
+
+    The end nodes are where the bending moment of a clamped span matters most,
+    and the curvature increment feeding eta has to reach them. Starting from
+    rest, eta is exactly zero everywhere, so a non-zero eta at the first and
+    last node is proof the hysteresis was integrated there as well.
+    """
+    ns = 101
+    f0 = 0.5 / BRETELLE.length * np.sqrt(BRETELLE.tension / CONDUCTOR.mass)
+    amplitude = 4.0 * _GRAVITY * CONDUCTOR.mass
+
+    def force(x, t, y, v):
+        return amplitude * np.sin(2.0 * np.pi * f0 * t) * np.ones_like(x)
+
+    parameters = simulation.Parameters(
+        ns=ns,
+        t0=0.0,
+        tf=1.0 / f0,
+        dt=1.0 / (f0 * 500),
+        dr=1.0 / (f0 * 50),
+        los=[0.25, 0.5, 0.75],
+    )
+    res = solve_dynamic(
+        CONDUCTOR,
+        BRETELLE,
+        parameters,
+        model=BendingModel.VARYING,
+        force=force,
+        approx_curvature=approx_curvature,
+        initial_position=np.zeros(ns),
+        initial_velocity=np.zeros(ns),
+    )
+
+    eta = res.state["eta"]
+    assert np.all(eta[[0, -1]] != 0.0), eta[[0, -1]]
+    assert np.abs(eta).max() <= 1.0 + 1e-09
 
 
 def test_non_convergence_returns_nan_and_no_state():
