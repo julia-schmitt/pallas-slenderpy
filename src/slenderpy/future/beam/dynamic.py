@@ -325,7 +325,7 @@ def solve_dynamic(
                 # the same weight and the tangent of the law is used as it is
                 # tangent = law.dynamic_tangent(eta_new, dchi_new)
 
-                jacobian = jacobian_base + dt2**2 * fdu.product_band(
+                jacobian = jacobian_base + 2 * dt2**2 * fdu.product_band(
                     left_rows, right_rows(y_new), tangent
                 )
                 try:
