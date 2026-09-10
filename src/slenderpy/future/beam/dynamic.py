@@ -296,12 +296,6 @@ def solve_dynamic(
                 # rate at the end of the step times the step: the same fully
                 # implicit discretisation the eta update of the law is built on
                 dchi = dt * chi_operator.rate(y, v)
-                # trapezoidal variant to compare against, second-order accurate
-                # and telescoping to the geometric increment chi - chi_old. It
-                # halves d(dchi)/dv, so the tangent below loses its factor 2
-                # dchi = dt2 * (
-                #     chi_operator.rate(y_old, v_old) + chi_operator.rate(y, v)
-                # )
                 eta = law.update_eta(eta_old, dchi)
                 remainder = D2 @ law.dynamic_moment(chi, eta) - ei_D4 @ y
                 residual = A @ v - rhs + dt2 * (remainder_old + remainder)
@@ -325,7 +319,7 @@ def solve_dynamic(
                 # the same weight and the tangent of the law is used as it is
                 # tangent = law.dynamic_tangent(eta_new, dchi_new)
 
-                jacobian = jacobian_base + 2 * dt2**2 * fdu.product_band(
+                jacobian = jacobian_base + dt2**2 * fdu.product_band(
                     left_rows, right_rows(y_new), tangent
                 )
                 try:

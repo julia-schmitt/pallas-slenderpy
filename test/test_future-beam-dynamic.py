@@ -13,6 +13,7 @@ import pytest
 from slenderpy.future import simulation
 from slenderpy.future._constant import _GRAVITY
 from slenderpy.future.beam import bending
+from slenderpy.future.beam.static import shape
 from slenderpy.future.beam.beam import BeamConst
 from slenderpy.future.beam.bending import BendingModel
 from slenderpy.future.beam.dynamic import solve_dynamic
@@ -850,3 +851,49 @@ def test_start_time_offset_is_honoured():
         force=force,
     )
     assert np.allclose(res0["y"].values, res1["y"].values, atol=1e-12)
+
+
+def test_converging_in_time():
+    "Check time convergence"
+    force = _gravity(CONDUCTOR)
+    ns = 101
+    x = np.linspace(0, BRETELLE.length, ns)
+
+    for model, approx in CASES:
+        y0 = shape.solve(
+            CONDUCTOR,
+            BRETELLE,
+            force(x, 0, None, None),
+            ns,
+            model=model,
+            ei=(CONDUCTOR.ei_min if model == "constant" else None),
+            approx_curvature=approx,
+        )
+
+        parameters1 = simulation.Parameters(
+            ns=ns, t0=0.0, tf=0.1, dt=0.002, dr=0.02, los=ns
+        )
+        res1 = solve_dynamic(
+            CONDUCTOR,
+            BRETELLE,
+            parameters1,
+            model=model,
+            approx_curvature=approx,
+            initial_position=1.02 * y0,
+        )
+
+        parameters2 = simulation.Parameters(
+            ns=ns, t0=0.0, tf=0.1, dt=0.0002, dr=0.02, los=ns
+        )
+        res2 = solve_dynamic(
+            CONDUCTOR,
+            BRETELLE,
+            parameters2,
+            model=model,
+            approx_curvature=approx,
+            initial_position=1.02 * y0,
+        )
+
+        diff = res1["eta"] - res2["eta"]
+        l2 = np.sqrt(np.mean(diff**2))
+        assert l2 < 5e-2, (model, approx)
