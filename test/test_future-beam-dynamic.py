@@ -13,10 +13,10 @@ import pytest
 from slenderpy.future import simulation
 from slenderpy.future._constant import _GRAVITY
 from slenderpy.future.beam import bending
-from slenderpy.future.beam.static import shape
 from slenderpy.future.beam.beam import BeamConst
 from slenderpy.future.beam.bending import BendingModel
 from slenderpy.future.beam.dynamic import solve_dynamic
+from slenderpy.future.beam.static import shape
 from slenderpy.future.boundary_condition import BoundaryCondition, clamped, hinged
 from slenderpy.future.components import Conductor, Span
 
