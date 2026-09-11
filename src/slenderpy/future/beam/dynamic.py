@@ -90,8 +90,6 @@ def solve_dynamic(
       iteration, for the reason above;
     - ``d(chi)/dt`` in (4) is evaluated as ``d(chi)/dy @ v(n+1)`` in both
       curvature options, i.e. fully implicit like the ``eta`` update it feeds.
-      A trapezoidal increment is left as a commented alternative in the step,
-      next to the tangent it changes;
     - a step that does not converge within ``max_iter`` stops the run: the
       snapshots already computed are kept, the remaining ones are left at nan and
       no final state is recorded. A non-finite state counts as a failure, so nan
@@ -314,10 +312,6 @@ def solve_dynamic(
                 # part of dynamic_tangent takes the second path, so it is the
                 # only one weighted twice
                 tangent = 2.0 * law.dynamic_tangent(eta_new, dchi_new) - law.ei_linear
-                # companion of the trapezoidal increment above: d(dchi)/dv falls
-                # back to the dt2 the curvature path carries, so both paths take
-                # the same weight and the tangent of the law is used as it is
-                # tangent = law.dynamic_tangent(eta_new, dchi_new)
 
                 jacobian = jacobian_base + dt2**2 * fdu.product_band(
                     left_rows, right_rows(y_new), tangent

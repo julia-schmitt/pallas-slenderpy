@@ -858,6 +858,8 @@ def test_converging_in_time():
     force = _gravity(CONDUCTOR)
     ns = 101
     x = np.linspace(0, BRETELLE.length, ns)
+    dt = 0.002
+    tf = 0.1
 
     for model, approx in CASES:
         y0 = shape.solve(
@@ -870,30 +872,59 @@ def test_converging_in_time():
             approx_curvature=approx,
         )
 
-        parameters1 = simulation.Parameters(
-            ns=ns, t0=0.0, tf=0.1, dt=0.002, dr=0.02, los=ns
+        parameters_coarse = simulation.Parameters(
+            ns=ns, t0=0.0, tf=tf, dt=dt, dr=0.02, los=ns
         )
-        res1 = solve_dynamic(
+        res_coarse = solve_dynamic(
             CONDUCTOR,
             BRETELLE,
-            parameters1,
+            parameters_coarse,
             model=model,
+            ei=(CONDUCTOR.ei_min if model == "constant" else None),
             approx_curvature=approx,
             initial_position=1.02 * y0,
+            force=force,
         )
 
-        parameters2 = simulation.Parameters(
-            ns=ns, t0=0.0, tf=0.1, dt=0.0002, dr=0.02, los=ns
+        parameters_medium = simulation.Parameters(
+            ns=ns, t0=0.0, tf=tf, dt=dt / 2, dr=0.02, los=ns
         )
-        res2 = solve_dynamic(
+        res_medium = solve_dynamic(
             CONDUCTOR,
             BRETELLE,
-            parameters2,
+            parameters_medium,
             model=model,
+            ei=(CONDUCTOR.ei_min if model == "constant" else None),
             approx_curvature=approx,
             initial_position=1.02 * y0,
+            force=force,
         )
 
-        diff = res1["eta"] - res2["eta"]
-        l2 = np.sqrt(np.mean(diff**2))
-        assert l2 < 5e-2, (model, approx)
+        parameters_fine = simulation.Parameters(
+            ns=ns, t0=0.0, tf=tf, dt=dt / 4, dr=0.02, los=ns
+        )
+        res_fine = solve_dynamic(
+            CONDUCTOR,
+            BRETELLE,
+            parameters_fine,
+            model=model,
+            ei=(CONDUCTOR.ei_min if model == "constant" else None),
+            approx_curvature=approx,
+            initial_position=1.02 * y0,
+            force=force,
+        )
+
+        threshold = 1.5 if model == "varying" else 2
+
+        diff_coarse_v = res_coarse["v"] - res_fine["v"]
+        diff_medium_v = res_medium["v"] - res_fine["v"]
+        err_coarse_v = np.sqrt(np.mean(diff_coarse_v**2))
+        err_medium_v = np.sqrt(np.mean(diff_medium_v**2))
+        assert err_coarse_v / err_medium_v > threshold, (model, approx)
+
+        if model == "varying":
+            diff_coarse_eta = res_coarse["eta"] - res_fine["eta"]
+            diff_medium_eta = res_medium["eta"] - res_fine["eta"]
+            err_coarse_eta = np.sqrt(np.mean(diff_coarse_eta**2))
+            err_medium_eta = np.sqrt(np.mean(diff_medium_eta**2))
+            assert err_coarse_eta / err_medium_eta > threshold, (model, approx)
